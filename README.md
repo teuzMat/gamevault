@@ -1,50 +1,156 @@
-# Welcome to your Expo app 👋
+# 🎮 GameVault
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> **Sua biblioteca. Seus jogos. Sua história.**
 
-## Get started
+O **GameVault** é uma aplicação de biblioteca pessoal de jogos desenvolvida com **React Native e Expo** como parte da atividade acadêmica **Laboratório 1: Criando o projeto e adicionando pacotes**, do curso de **Análise e Desenvolvimento de Sistemas (ADS)**.
 
-1. Install dependencies
+A aplicação permite organizar uma coleção de jogos, pesquisar títulos, filtrar por plataforma, visualizar capas, acompanhar jogos em andamento e gerenciar uma lista de favoritos com persistência local.
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## 📱 Sobre o projeto
 
-   ```bash
-   npx expo start
-   ```
+O GameVault foi desenvolvido com o objetivo de aplicar, na prática, conceitos relacionados a:
 
-In the output, you'll find options to open the app in a
+- Criação de aplicações React Native com Expo;
+- Estrutura de projetos React Native;
+- Gerenciamento de dependências;
+- Instalação de pacotes utilizando npm e `npx expo install`;
+- Utilização do `package.json`;
+- Utilização do `package-lock.json`;
+- Organização de componentes e arquivos;
+- Integração de bibliotecas externas;
+- Persistência de dados localmente;
+- Desenvolvimento de interfaces mobile.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+O projeto utiliza dados locais para representar a biblioteca de jogos, não necessitando de backend ou banco de dados externo.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## ✨ Funcionalidades
 
-When you're ready, run:
+### 🏠 Início
 
-```bash
-npm run reset-project
-```
+A tela inicial apresenta uma visão geral da biblioteca, incluindo:
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- Quantidade total de jogos;
+- Quantidade de jogos favoritos;
+- Jogos atualmente em andamento;
+- Jogos em destaque;
+- Informações resumidas da coleção;
+- Gradiente visual utilizando `expo-linear-gradient`.
 
-## Learn more
+### 🎮 Biblioteca
 
-To learn more about developing your project with Expo, look at the following resources:
+A biblioteca permite:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- Visualizar todos os jogos cadastrados;
+- Pesquisar jogos pelo nome;
+- Filtrar jogos por plataforma;
+- Visualizar capas dos jogos;
+- Visualizar gênero e plataforma;
+- Visualizar o status de cada jogo;
+- Adicionar ou remover jogos dos favoritos;
+- Utilizar efeito de desfoque nas informações das capas.
 
-## Join the community
+### ❤️ Favoritos
 
-Join our community of developers creating universal apps.
+A tela de favoritos apresenta todos os jogos marcados pelo usuário.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Os favoritos são armazenados localmente, permitindo que permaneçam disponíveis mesmo após o encerramento e reabertura da aplicação.
+
+### 🧩 Tecnologias utilizadas
+
+A aplicação possui uma seção específica apresentando as bibliotecas externas utilizadas no desenvolvimento.
+
+---
+
+## 📦 Pacotes externos utilizados
+
+O laboratório exigia a utilização efetiva de pelo menos cinco pacotes externos. O GameVault utiliza os seguintes:
+
+| Pacote | Utilização |
+|---|---|
+| `@react-native-async-storage/async-storage` | Persistência local dos favoritos |
+| `expo-linear-gradient` | Criação de gradientes na interface |
+| `expo-haptics` | Feedback tátil durante interações |
+| `expo-image` | Exibição das capas dos jogos |
+| `expo-blur` | Efeito de desfoque nas informações das capas |
+
+Todos os pacotes foram efetivamente integrados à aplicação.
+
+---
+
+## 🛠️ Tecnologias
+
+### Base
+
+- **React Native**
+- **Expo**
+- **TypeScript**
+- **Expo Router**
+- **React**
+
+### Bibliotecas externas
+
+- **AsyncStorage**
+- **Expo Linear Gradient**
+- **Expo Haptics**
+- **Expo Image**
+- **Expo Blur**
+
+### Ferramentas
+
+- **Node.js**
+- **npm**
+- **Git**
+- **GitHub**
+- **Visual Studio Code**
+
+---
+
+## 📂 Estrutura do projeto
+
+```text
+GameVault/
+│
+├── app/
+│   ├── (tabs)/
+│   │   ├── _layout.tsx
+│   │   ├── index.tsx
+│   │   ├── biblioteca.tsx
+│   │   ├── favoritos.tsx
+│   │   └── tecnologias.tsx
+│   │
+│   ├── jogo/
+│   │   └── [id].tsx
+│   │
+│   ├── _layout.tsx
+│   └── modal.tsx
+│
+├── assets/
+│   └── games/
+│       ├── big-walk.jpg
+│       ├── god-of-war.png
+│       ├── minecraft.png
+│       └── ...
+│
+├── components/
+│   └── haptic-tab.tsx
+│
+├── constants/
+│   └── games.ts
+│
+├── contexts/
+│   └── FavoritesContext.tsx
+│
+├── hooks/
+│
+├── scripts/
+│
+├── .gitignore
+├── app.json
+├── package.json
+├── package-lock.json
+├── README.md
+└── tsconfig.json
