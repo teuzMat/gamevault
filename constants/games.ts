@@ -19,6 +19,7 @@ export const games: Game[] = [
     favorite: true,
     image: require('@/assets/games/league-of-legends.jpg'),
   },
+
   {
     id: '2',
     name: 'Valorant',
@@ -39,6 +40,7 @@ export const games: Game[] = [
     favorite: true,
     image: require('@/assets/games/lego-batman.jpg'),
   },
+
   {
     id: '4',
     name: 'LEGO Batman 2: DC Super Heroes',
@@ -48,21 +50,23 @@ export const games: Game[] = [
     favorite: false,
     image: require('@/assets/games/lego-batman-2.jpg'),
   },
+
   {
     id: '5',
     name: 'LEGO Batman 3: Beyond Gotham',
     genre: 'Ação / Aventura',
     platform: 'PlayStation 2',
-    status: 'Não iniciado',
+    status: 'Não jogado',
     favorite: false,
     image: require('@/assets/games/lego-batman-3.webp'),
   },
+
   {
     id: '6',
     name: 'LEGO Batman: Legacy of the Dark Knight',
     genre: 'Ação / Aventura',
     platform: 'PlayStation 5',
-    status: 'Não iniciado',
+    status: 'Não jogado',
     favorite: false,
     image: require('@/assets/games/lego-batman-legacy.jpg'),
   },
@@ -77,6 +81,7 @@ export const games: Game[] = [
     favorite: true,
     image: require('@/assets/games/god-of-war.png'),
   },
+
   {
     id: '8',
     name: 'God of War II',
@@ -86,6 +91,7 @@ export const games: Game[] = [
     favorite: true,
     image: require('@/assets/games/god-of-war-2.png'),
   },
+
   {
     id: '9',
     name: 'God of War III',
@@ -95,6 +101,7 @@ export const games: Game[] = [
     favorite: true,
     image: require('@/assets/games/god-of-war-3.png'),
   },
+
   {
     id: '10',
     name: 'God of War',
@@ -104,6 +111,7 @@ export const games: Game[] = [
     favorite: true,
     image: require('@/assets/games/god-of-war-2018.png'),
   },
+
   {
     id: '11',
     name: 'God of War Ragnarök',
@@ -124,6 +132,7 @@ export const games: Game[] = [
     favorite: true,
     image: require('@/assets/games/spider-man.png'),
   },
+
   {
     id: '13',
     name: "Marvel's Spider-Man: Miles Morales",
@@ -133,6 +142,7 @@ export const games: Game[] = [
     favorite: true,
     image: require('@/assets/games/miles-morales.png'),
   },
+
   {
     id: '14',
     name: "Marvel's Spider-Man 2",
@@ -153,6 +163,7 @@ export const games: Game[] = [
     favorite: false,
     image: require('@/assets/games/gta-iv.png'),
   },
+
   {
     id: '16',
     name: 'Grand Theft Auto V',
@@ -162,12 +173,13 @@ export const games: Game[] = [
     favorite: true,
     image: require('@/assets/games/gta-v.png'),
   },
+
   {
     id: '17',
     name: 'Grand Theft Auto VI',
     genre: 'Ação / Mundo Aberto',
     platform: 'PlayStation 5',
-    status: 'Não iniciado',
+    status: 'Não jogado',
     favorite: true,
     image: require('@/assets/games/gta-vi.jpg'),
   },
@@ -182,21 +194,23 @@ export const games: Game[] = [
     favorite: true,
     image: require('@/assets/games/minecraft.png'),
   },
+
   {
     id: '19',
     name: 'Minecraft Dungeons',
     genre: 'RPG / Ação',
     platform: 'PC',
-    status: 'Não iniciado',
+    status: 'Não jogado',
     favorite: false,
     image: require('@/assets/games/minecraft-dungeons.webp'),
   },
+
   {
     id: '20',
     name: 'Minecraft Dungeons 2',
     genre: 'RPG / Ação',
     platform: 'PC',
-    status: 'Não lançado',
+    status: 'Aguardando Lançamento',
     favorite: false,
     image: require('@/assets/games/minecraft-dungeons-2.png'),
   },
@@ -211,15 +225,17 @@ export const games: Game[] = [
     favorite: true,
     image: require('@/assets/games/peak.jpg'),
   },
+
   {
     id: '22',
     name: 'Big Walk',
     genre: 'Aventura / Cooperação',
     platform: 'PC',
-    status: 'Não iniciado',
+    status: 'Não jogado',
     favorite: false,
     image: require('@/assets/games/big-walk.jpg'),
   },
+
   {
     id: '23',
     name: 'Good Pizza, Great Pizza',

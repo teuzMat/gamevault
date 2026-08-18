@@ -22,7 +22,11 @@ export default function TabLayout() {
         options={{
           title: 'Início',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <IconSymbol
+              size={28}
+              name="house.fill"
+              color={color}
+            />
           ),
         }}
       />
@@ -32,7 +36,11 @@ export default function TabLayout() {
         options={{
           title: 'Biblioteca',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="folder.fill" color={color} />
+            <IconSymbol
+              size={28}
+              name="folder.fill"
+              color={color}
+            />
           ),
         }}
       />
@@ -42,7 +50,25 @@ export default function TabLayout() {
         options={{
           title: 'Favoritos',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="heart.fill" color={color} />
+            <IconSymbol
+              size={28}
+              name="heart.fill"
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="perfil"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol
+              size={28}
+              name="person.fill"
+              color={color}
+            />
           ),
         }}
       />
@@ -52,7 +78,11 @@ export default function TabLayout() {
         options={{
           title: 'Tecnologias',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="gearshape.fill" color={color} />
+            <IconSymbol
+              size={28}
+              name="gearshape.fill"
+              color={color}
+            />
           ),
         }}
       />
