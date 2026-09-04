@@ -2,11 +2,20 @@
  * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
  * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
  */
-
 import { Platform } from 'react-native';
+import { scale } from 'react-native-size-matters';
 
 const tintColorLight = '#0a7ea4';
 const tintColorDark = '#fff';
+
+export const Spacing = {
+  xs: scale(4),
+  sm: scale(8),
+  md: scale(16),
+  lg: scale(24),
+  xl: scale(32),
+  xxl: scale(48),
+};
 
 export const Colors = {
   light: {

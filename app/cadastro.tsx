@@ -10,6 +10,8 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { mvs, scale } from 'react-native-size-matters';
 
 import CadastroButton from '@/components/cadastro/CadastroButton';
 import CadastroHeader from '@/components/cadastro/CadastroHeader';
@@ -17,6 +19,7 @@ import CadastroInput from '@/components/cadastro/CadastroInput';
 import CadastroSection from '@/components/cadastro/CadastroSection';
 
 export default function CadastroScreen() {
+  const insets = useSafeAreaInsets();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -404,7 +407,13 @@ export default function CadastroScreen() {
       }
     >
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { 
+            paddingTop: insets.top + scale(20), 
+            paddingBottom: insets.bottom + scale(40) 
+          }
+        ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
@@ -528,8 +537,7 @@ export default function CadastroScreen() {
             ========================================== */}
 
         <Text style={styles.footerText}>
-          Este cadastro é apenas demonstrativo para
-          o Laboratório 2.
+          Todos os direitos reservados © Mateus Cantanhêde 
         </Text>
 
       </ScrollView>
@@ -542,23 +550,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0B0F19',
   },
-
   content: {
-    padding: 20,
-    paddingTop: 55,
-    paddingBottom: 40,
+    padding: scale(20),
+    width: '100%',
+    maxWidth: 600,
+    alignSelf: 'center',
   },
-
   backContainer: {
     alignSelf: 'flex-start',
-    marginBottom: 10,
+    marginBottom: scale(10),
   },
-
   footerText: {
     color: '#6B7280',
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: mvs(12),
+    lineHeight: mvs(18),
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: scale(4),
   },
 });

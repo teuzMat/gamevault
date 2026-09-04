@@ -1,15 +1,16 @@
+import { Stack } from 'expo-router';
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
-} from '@react-navigation/native';
-import { Stack } from 'expo-router';
+} from "expo-router/react-navigation";
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { FavoritesProvider } from '@/contexts/FavoritesContext';
 import { GameStatusProvider } from '@/contexts/GamesContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 export const unstable_settings = {
   anchor: '(tabs)',
@@ -21,39 +22,47 @@ export default function RootLayout() {
   return (
     <GameStatusProvider>
       <FavoritesProvider>
-        <ThemeProvider
-          value={
-            colorScheme === 'dark'
-              ? DarkTheme
-              : DefaultTheme
-          }
-        >
-          <Stack>
-            <Stack.Screen
-              name="(tabs)"
-              options={{
-                headerShown: false,
-              }}
-            />
+        <SafeAreaProvider>
+          <ThemeProvider
+            value={
+              colorScheme === 'dark'
+                ? DarkTheme
+                : DefaultTheme
+            }
+          >
+            <Stack>
+              <Stack.Screen
+                name="(tabs)"
+                options={{
+                  headerShown: false,
+                }}
+              />
 
-            <Stack.Screen
-              name="cadastro"
-              options={{
-                headerShown: false,
-              }}
-            />
+              <Stack.Screen
+                name="cadastro"
+                options={{
+                  headerShown: false,
+                }}
+              />
 
-            <Stack.Screen
-              name="modal"
-              options={{
-                presentation: 'modal',
-                title: 'Modal',
-              }}
-            />
-          </Stack>
+              <Stack.Screen
+                name="jogo/[id]"
+                options={{ headerShown: false }}
+              />
 
-          <StatusBar style="auto" />
-        </ThemeProvider>
+              <Stack.Screen
+                name="modal"
+                options={{
+                  presentation: 'modal',
+                  title: 'Modal',
+                  headerShown: false
+                }}
+              />
+            </Stack>
+
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </SafeAreaProvider>
       </FavoritesProvider>
     </GameStatusProvider>
   );

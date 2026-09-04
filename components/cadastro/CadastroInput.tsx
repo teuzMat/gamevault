@@ -54,6 +54,7 @@ const styles = StyleSheet.create({
 
   input: {
     height: 52,
+    minHeight: 52,
     backgroundColor: '#151A27',
     borderRadius: 14,
     borderWidth: 1,

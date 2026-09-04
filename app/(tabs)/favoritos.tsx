@@ -6,18 +6,30 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions, // <-- Importado para medir a tela dinamicamente
 } from 'react-native';
 
 import { games } from '@/constants/games';
 import { useFavorites } from '@/contexts/FavoritesContext';
 
 export default function FavoritosScreen() {
-  const { favorites, isFavorite, toggleFavorite, loading } =
-    useFavorites();
+  const { favorites, isFavorite, toggleFavorite, loading } = useFavorites();
+  const { width } = useWindowDimensions(); // <-- Pega a largura atual da tela
 
   const favoriteGames = useMemo(() => {
     return games.filter((game) => favorites.includes(game.id));
   }, [favorites]);
+
+  // ==========================================
+  // EVIDÊNCIA 4: LÓGICA DE GRID RESPONSIVO
+  // ==========================================
+  // Define o número de colunas baseado na largura da tela
+  const numColumns = useMemo(() => {
+    if (width >= 1024) return 4; // Monitores grandes (4 jogos por linha)
+    if (width >= 768) return 3;  // Tablets/Monitores médios (3 jogos por linha)
+    if (width >= 600) return 2;  // Celulares grandes na horizontal (2 jogos por linha)
+    return 1;                    // Celulares padrão na vertical (1 jogo por linha)
+  }, [width]);
 
   if (loading) {
     return (
@@ -32,8 +44,13 @@ export default function FavoritosScreen() {
   return (
     <View style={styles.container}>
       <FlatList
+        // O key é necessário aqui porque o FlatList precisa ser recriado se o numColumns mudar
+        key={`grid-${numColumns}`}
+        numColumns={numColumns} 
         data={favoriteGames}
         keyExtractor={(item) => item.id}
+        // O columnWrapperStyle só pode ser passado se tiver mais de 1 coluna
+        columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
         contentContainerStyle={[
           styles.content,
           favoriteGames.length === 0 && styles.emptyContent,
@@ -168,7 +185,18 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 
+  // ==========================================
+  // EVIDÊNCIA 3: FLEXBOX PARA DISTRIBUIR O GRID
+  // ==========================================
+  row: {
+    flex: 1,
+    gap: 16, // Espaçamento entre os cartões na mesma linha (suportado no React Native mais recente)
+    justifyContent: 'flex-start',
+  },
+
   gameCard: {
+    flex: 1, // Faz com que os cartões na mesma linha dividam o espaço igualmente
+    minWidth: '20%', // Garante que o cartão não fique muito esmagado se tiver muitos na tela
     backgroundColor: '#151A27',
     borderRadius: 18,
     overflow: 'hidden',
