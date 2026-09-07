@@ -11,7 +11,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { mvs, scale } from 'react-native-size-matters';
 
 import CadastroButton from '@/components/cadastro/CadastroButton';
 import CadastroHeader from '@/components/cadastro/CadastroHeader';
@@ -32,229 +31,90 @@ export default function CadastroScreen() {
    * ==========================================
    * MÁSCARA DE TELEFONE
    * ==========================================
-   *
-   * Formato:
-   * (00) 00000-0000
-   *
-   * Também funciona para telefones com
-   * 10 dígitos:
-   * (00) 0000-0000
    */
   const formatTelefone = (value: string) => {
-    const digits = value
-      .replace(/\D/g, '')
-      .slice(0, 11);
+    const digits = value.replace(/\D/g, '').slice(0, 11);
 
-    if (digits.length === 0) {
-      return '';
-    }
-
-    if (digits.length <= 2) {
-      return `(${digits}`;
-    }
-
-    if (digits.length <= 6) {
-      return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    }
-
-    if (digits.length <= 10) {
-      return `(${digits.slice(0, 2)}) ${digits.slice(
-        2,
-        6
-      )}-${digits.slice(6)}`;
-    }
-
-    return `(${digits.slice(0, 2)}) ${digits.slice(
-      2,
-      7
-    )}-${digits.slice(7, 11)}`;
+    if (digits.length === 0) return '';
+    if (digits.length <= 2) return `(${digits}`;
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+    
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
   };
 
   /*
    * ==========================================
    * MÁSCARA DE CPF
    * ==========================================
-   *
-   * Formato:
-   * 000.000.000-00
    */
   const formatCpf = (value: string) => {
-    const digits = value
-      .replace(/\D/g, '')
-      .slice(0, 11);
+    const digits = value.replace(/\D/g, '').slice(0, 11);
 
-    if (digits.length <= 3) {
-      return digits;
-    }
-
-    if (digits.length <= 6) {
-      return `${digits.slice(0, 3)}.${digits.slice(3)}`;
-    }
-
-    if (digits.length <= 9) {
-      return `${digits.slice(0, 3)}.${digits.slice(
-        3,
-        6
-      )}.${digits.slice(6)}`;
-    }
-
-    return `${digits.slice(0, 3)}.${digits.slice(
-      3,
-      6
-    )}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+    
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
   };
 
   /*
    * ==========================================
    * MÁSCARA DE DATA DE NASCIMENTO
    * ==========================================
-   *
-   * Formato:
-   * DD/MM/AAAA
    */
   const formatDataNascimento = (value: string) => {
-    const digits = value
-      .replace(/\D/g, '')
-      .slice(0, 8);
+    const digits = value.replace(/\D/g, '').slice(0, 8);
 
-    if (digits.length <= 2) {
-      return digits;
-    }
-
-    if (digits.length <= 4) {
-      return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    }
-
-    return `${digits.slice(0, 2)}/${digits.slice(
-      2,
-      4
-    )}/${digits.slice(4, 8)}`;
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
   };
 
   /*
    * ==========================================
-   * VALIDAÇÃO DO TELEFONE
+   * VALIDAÇÕES
    * ==========================================
-   *
-   * Aceita:
-   * (11) 99999-9999
-   * (11) 9999-9999
    */
   const validarTelefone = (value: string) => {
     const telefoneNumerico = value.replace(/\D/g, '');
-
-    return (
-      telefoneNumerico.length === 10 ||
-      telefoneNumerico.length === 11
-    );
+    return telefoneNumerico.length === 10 || telefoneNumerico.length === 11;
   };
 
-  /*
-   * ==========================================
-   * VALIDAÇÃO DO CPF
-   * ==========================================
-   */
   const validarCpf = (value: string) => {
     const cpfNumerico = value.replace(/\D/g, '');
-
-    if (cpfNumerico.length !== 11) {
-      return false;
-    }
-
-    /*
-     * Impede CPFs como:
-     * 111.111.111-11
-     * 222.222.222-22
-     * etc.
-     */
-    if (/^(\d)\1+$/.test(cpfNumerico)) {
-      return false;
-    }
+    if (cpfNumerico.length !== 11) return false;
+    if (/^(\d)\1+$/.test(cpfNumerico)) return false;
 
     let soma = 0;
-
-    for (let i = 0; i < 9; i++) {
-      soma +=
-        Number(cpfNumerico[i]) * (10 - i);
-    }
-
+    for (let i = 0; i < 9; i++) soma += Number(cpfNumerico[i]) * (10 - i);
     let resto = (soma * 10) % 11;
-
-    if (resto === 10) {
-      resto = 0;
-    }
-
-    if (resto !== Number(cpfNumerico[9])) {
-      return false;
-    }
+    if (resto === 10) resto = 0;
+    if (resto !== Number(cpfNumerico[9])) return false;
 
     soma = 0;
-
-    for (let i = 0; i < 10; i++) {
-      soma +=
-        Number(cpfNumerico[i]) * (11 - i);
-    }
-
+    for (let i = 0; i < 10; i++) soma += Number(cpfNumerico[i]) * (11 - i);
     resto = (soma * 10) % 11;
-
-    if (resto === 10) {
-      resto = 0;
-    }
-
+    if (resto === 10) resto = 0;
     return resto === Number(cpfNumerico[10]);
   };
 
-  /*
-   * ==========================================
-   * VALIDAÇÃO DA DATA
-   * ==========================================
-   */
   const validarDataNascimento = (value: string) => {
-    if (value.length !== 10) {
-      return false;
-    }
-
+    if (value.length !== 10) return false;
     const partes = value.split('/');
-
-    if (partes.length !== 3) {
-      return false;
-    }
+    if (partes.length !== 3) return false;
 
     const dia = Number(partes[0]);
     const mes = Number(partes[1]);
     const ano = Number(partes[2]);
 
-    if (
-      !Number.isInteger(dia) ||
-      !Number.isInteger(mes) ||
-      !Number.isInteger(ano)
-    ) {
-      return false;
-    }
+    if (!Number.isInteger(dia) || !Number.isInteger(mes) || !Number.isInteger(ano)) return false;
+    if (ano < 1900 || ano > new Date().getFullYear()) return false;
+    if (mes < 1 || mes > 12) return false;
 
-    if (
-      ano < 1900 ||
-      ano > new Date().getFullYear()
-    ) {
-      return false;
-    }
-
-    if (mes < 1 || mes > 12) {
-      return false;
-    }
-
-    const ultimoDiaDoMes = new Date(
-      ano,
-      mes,
-      0
-    ).getDate();
-
-    if (
-      dia < 1 ||
-      dia > ultimoDiaDoMes
-    ) {
-      return false;
-    }
+    const ultimoDiaDoMes = new Date(ano, mes, 0).getDate();
+    if (dia < 1 || dia > ultimoDiaDoMes) return false;
 
     return true;
   };
@@ -265,162 +125,63 @@ export default function CadastroScreen() {
    * ==========================================
    */
   const handleCadastro = () => {
-    /*
-     * Campos obrigatórios
-     */
-    if (
-      !nome.trim() ||
-      !email.trim() ||
-      !telefone.trim() ||
-      !dataNascimento.trim() ||
-      !cpf.trim() ||
-      !senha ||
-      !confirmarSenha
-    ) {
-      Alert.alert(
-        'Campos obrigatórios',
-        'Preencha todos os campos para continuar.'
-      );
-
+    if (!nome.trim() || !email.trim() || !telefone.trim() || !dataNascimento.trim() || !cpf.trim() || !senha || !confirmarSenha) {
+      Alert.alert('Campos obrigatórios', 'Preencha todos os campos para continuar.');
       return;
     }
-
-    /*
-     * Nome
-     */
     if (nome.trim().length < 3) {
-      Alert.alert(
-        'Nome inválido',
-        'Digite seu nome completo.'
-      );
-
+      Alert.alert('Nome inválido', 'Digite seu nome completo.');
       return;
     }
-
-    /*
-     * E-mail
-     */
     const emailLimpo = email.trim();
-
-    const emailValido =
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        emailLimpo
-      );
-
-    if (!emailValido) {
-      Alert.alert(
-        'E-mail inválido',
-        'Digite um e-mail válido, como exemplo@email.com.'
-      );
-
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpo)) {
+      Alert.alert('E-mail inválido', 'Digite um e-mail válido, como exemplo@email.com.');
       return;
     }
-
-    /*
-     * Telefone
-     */
     if (!validarTelefone(telefone)) {
-      Alert.alert(
-        'Telefone inválido',
-        'Digite um telefone válido com DDD.'
-      );
-
+      Alert.alert('Telefone inválido', 'Digite um telefone válido com DDD.');
       return;
     }
-
-    /*
-     * Data de nascimento
-     */
     if (!validarDataNascimento(dataNascimento)) {
-      Alert.alert(
-        'Data inválida',
-        'Digite uma data de nascimento válida no formato DD/MM/AAAA.'
-      );
-
+      Alert.alert('Data inválida', 'Digite uma data de nascimento válida no formato DD/MM/AAAA.');
       return;
     }
-
-    /*
-     * CPF
-     */
     if (!validarCpf(cpf)) {
-      Alert.alert(
-        'CPF inválido',
-        'Digite um CPF válido no formato 000.000.000-00.'
-      );
-
+      Alert.alert('CPF inválido', 'Digite um CPF válido no formato 000.000.000-00.');
       return;
     }
-
-    /*
-     * Senha
-     */
     if (senha.length < 6) {
-      Alert.alert(
-        'Senha inválida',
-        'A senha deve possuir pelo menos 6 caracteres.'
-      );
-
+      Alert.alert('Senha inválida', 'A senha deve possuir pelo menos 6 caracteres.');
       return;
     }
-
-    /*
-     * Confirmação da senha
-     */
     if (senha !== confirmarSenha) {
-      Alert.alert(
-        'Senhas diferentes',
-        'A senha e a confirmação de senha precisam ser iguais.'
-      );
-
+      Alert.alert('Senhas diferentes', 'A senha e a confirmação de senha precisam ser iguais.');
       return;
     }
 
-    /*
-     * ==========================================
-     * CADASTRO APROVADO
-     * ==========================================
-     *
-     * Este Alert é o retorno visual de sucesso.
-     */
     Alert.alert(
       'Cadastro realizado!',
       `Bem-vindo ao GameVault, ${nome.trim()}!`,
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            router.back();
-          },
-        },
-      ]
+      [{ text: 'OK', onPress: () => router.back() }]
     );
   };
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={
-        Platform.OS === 'ios'
-          ? 'padding'
-          : undefined
-      }
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
         contentContainerStyle={[
           styles.content,
           { 
-            paddingTop: insets.top + scale(20), 
-            paddingBottom: insets.bottom + scale(40) 
+            paddingTop: insets.top + 20, 
+            paddingBottom: insets.bottom + 40 
           }
         ]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* ==========================================
-            VOLTAR
-            ========================================== */}
-
         <View style={styles.backContainer}>
           <Button
             title="Voltar"
@@ -429,18 +190,9 @@ export default function CadastroScreen() {
           />
         </View>
 
-        {/* ==========================================
-            CABEÇALHO
-            ========================================== */}
-
         <CadastroHeader />
 
-        {/* ==========================================
-            DADOS PESSOAIS
-            ========================================== */}
-
         <CadastroSection title="Dados pessoais">
-
           <CadastroInput
             label="Nome completo"
             placeholder="Digite seu nome completo"
@@ -464,11 +216,7 @@ export default function CadastroScreen() {
             label="Telefone"
             placeholder="(00) 00000-0000"
             value={telefone}
-            onChangeText={(text) => {
-              setTelefone(
-                formatTelefone(text)
-              );
-            }}
+            onChangeText={(text) => setTelefone(formatTelefone(text))}
             keyboardType="phone-pad"
             maxLength={15}
           />
@@ -477,11 +225,7 @@ export default function CadastroScreen() {
             label="Data de nascimento"
             placeholder="DD/MM/AAAA"
             value={dataNascimento}
-            onChangeText={(text) => {
-              setDataNascimento(
-                formatDataNascimento(text)
-              );
-            }}
+            onChangeText={(text) => setDataNascimento(formatDataNascimento(text))}
             keyboardType="numeric"
             maxLength={10}
           />
@@ -490,21 +234,13 @@ export default function CadastroScreen() {
             label="CPF"
             placeholder="000.000.000-00"
             value={cpf}
-            onChangeText={(text) => {
-              setCpf(formatCpf(text));
-            }}
+            onChangeText={(text) => setCpf(formatCpf(text))}
             keyboardType="numeric"
             maxLength={14}
           />
-
         </CadastroSection>
 
-        {/* ==========================================
-            DADOS DE ACESSO
-            ========================================== */}
-
         <CadastroSection title="Dados de acesso">
-
           <CadastroInput
             label="Senha"
             placeholder="Digite sua senha"
@@ -529,17 +265,11 @@ export default function CadastroScreen() {
             title="Cadastrar"
             onPress={handleCadastro}
           />
-
         </CadastroSection>
-
-        {/* ==========================================
-            RODAPÉ
-            ========================================== */}
 
         <Text style={styles.footerText}>
           Todos os direitos reservados © Mateus Cantanhêde 
         </Text>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -551,20 +281,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#0B0F19',
   },
   content: {
-    padding: scale(20),
+    padding: 20,
     width: '100%',
-    maxWidth: 600,
+    maxWidth: 900,
     alignSelf: 'center',
   },
   backContainer: {
     alignSelf: 'flex-start',
-    marginBottom: scale(10),
+    marginBottom: 10,
   },
   footerText: {
     color: '#6B7280',
-    fontSize: mvs(12),
-    lineHeight: mvs(18),
+    fontSize: 12,
+    lineHeight: 18,
     textAlign: 'center',
-    marginTop: scale(4),
+    marginTop: 4,
   },
 });

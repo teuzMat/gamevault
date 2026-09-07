@@ -9,7 +9,6 @@ import {
 
 import { router } from 'expo-router';
 
-import { games } from '@/constants/games';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import {
   GameStatus,
@@ -18,116 +17,83 @@ import {
 
 export default function PerfilScreen() {
   const { favorites } = useFavorites();
-  const { getStatus } = useGameStatus();
+  const { statuses } = useGameStatus();
 
   /*
-   * Retorna o status atual do jogo.
-   *
-   * Primeiro verifica se existe um status alterado pelo usuário
-   * e salvo no AsyncStorage.
-   *
-   * Caso ainda não exista uma alteração, utiliza o status
-   * original definido em games.ts.
-   *
-   * "Não iniciado" é tratado como "Não jogado".
+   * ==========================================
+   * LÓGICA DE DADOS DINÂMICOS (API)
+   * ==========================================
+   * Agora a biblioteca do usuário é calculada juntando 
+   * tudo o que ele favoritou e tudo que ele marcou status.
    */
-  const getCurrentStatus = (
-    game: (typeof games)[number]
-  ): GameStatus => {
-    const defaultStatus =
-      game.status === 'Não iniciado'
-        ? 'Não jogado'
-        : (game.status as GameStatus);
+  const trackedGamesWithStatus = useMemo(() => {
+    // Usamos um Map para garantir que não vamos contar o mesmo jogo duas vezes
+    const gameMap = new Map<string, { status: GameStatus }>();
 
-    return getStatus(game.id, defaultStatus);
-  };
+    // 1. Adicionamos todos os jogos que têm algum status salvo
+    Object.entries(statuses).forEach(([id, data]) => {
+      gameMap.set(id, { status: data.status });
+    });
 
-  /*
-   * Cria uma lista com os jogos e seus status atuais.
-   */
-  const gamesWithCurrentStatus = useMemo(() => {
-    return games.map((game) => ({
-      ...game,
-      currentStatus: getCurrentStatus(game),
-    }));
-  }, [getStatus]);
+    // 2. Adicionamos os favoritos que por acaso não têm status alterado (padrão: Não jogado)
+    favorites.forEach((game) => {
+      if (!gameMap.has(game.id)) {
+        gameMap.set(game.id, { status: 'Não jogado' });
+      }
+    });
+
+    return Array.from(gameMap.values());
+  }, [favorites, statuses]);
 
   /*
    * Jogos aguardando lançamento não entram
    * nas estatísticas de progresso.
    */
   const availableGames = useMemo(() => {
-    return gamesWithCurrentStatus.filter(
-      (game) => game.currentStatus !== 'Aguardando Lançamento'
+    return trackedGamesWithStatus.filter(
+      (game) => game.status !== 'Aguardando Lançamento'
     );
-  }, [gamesWithCurrentStatus]);
+  }, [trackedGamesWithStatus]);
 
   /*
-   * Quantidade total de jogos cadastrados.
-   *
-   * Inclui jogos aguardando lançamento.
+   * Quantidade total de jogos que o usuário interagiu
    */
-  const totalGames = gamesWithCurrentStatus.length;
+  const totalGames = trackedGamesWithStatus.length;
 
   /*
-   * Quantidade de jogos contabilizados
-   * no progresso.
+   * Quantidade de jogos contabilizados no progresso.
    */
   const availableGamesCount = availableGames.length;
 
   /*
    * Favoritos.
    */
-  const favoriteCount = useMemo(() => {
-    return favorites.length;
-  }, [favorites]);
+  const favoriteCount = favorites.length;
 
   /*
-   * Jogos atualmente sendo jogados.
+   * Contadores baseados na lista real do usuário
    */
   const playingCount = useMemo(() => {
-    return availableGames.filter(
-      (game) => game.currentStatus === 'Jogando'
-    ).length;
+    return availableGames.filter((game) => game.status === 'Jogando').length;
   }, [availableGames]);
 
-  /*
-   * Jogos concluídos.
-   */
   const completedCount = useMemo(() => {
-    return availableGames.filter(
-      (game) => game.currentStatus === 'Concluído'
-    ).length;
+    return availableGames.filter((game) => game.status === 'Concluído').length;
   }, [availableGames]);
 
-  /*
-   * Jogos platinados.
-   */
   const platinumCount = useMemo(() => {
-    return availableGames.filter(
-      (game) => game.currentStatus === 'Platinado'
-    ).length;
+    return availableGames.filter((game) => game.status === 'Platinado').length;
   }, [availableGames]);
 
-  /*
-   * Jogos que ainda não foram iniciados.
-   */
   const notPlayedCount = useMemo(() => {
-    return availableGames.filter(
-      (game) => game.currentStatus === 'Não jogado'
-    ).length;
+    return availableGames.filter((game) => game.status === 'Não jogado').length;
   }, [availableGames]);
 
-  /*
-   * Jogos aguardando lançamento.
-   *
-   * Não entram no cálculo dos percentuais.
-   */
   const upcomingCount = useMemo(() => {
-    return gamesWithCurrentStatus.filter(
-      (game) => game.currentStatus === 'Aguardando Lançamento'
+    return trackedGamesWithStatus.filter(
+      (game) => game.status === 'Aguardando Lançamento'
     ).length;
-  }, [gamesWithCurrentStatus]);
+  }, [trackedGamesWithStatus]);
 
   /*
    * Calcula o percentual de determinado status.
@@ -137,9 +103,7 @@ export default function PerfilScreen() {
       return 0;
     }
 
-    return Math.round(
-      (count / availableGamesCount) * 100
-    );
+    return Math.round((count / availableGamesCount) * 100);
   };
 
   const playingPercentage = getPercentage(playingCount);
@@ -151,21 +115,8 @@ export default function PerfilScreen() {
    * ==========================================
    * NAVEGAÇÃO PARA CADASTRO
    * ==========================================
-   *
-   * Como o arquivo está em:
-   *
-   * app/cadastro.tsx
-   *
-   * a rota é:
-   *
-   * /cadastro
-   *
-   * O navigate garante a navegação para a rota
-   * sem depender de uma tela anterior.
    */
   const handleCriarConta = () => {
-    console.log('Botão "Criar uma conta" pressionado');
-
     router.navigate('/cadastro');
   };
 
@@ -175,48 +126,29 @@ export default function PerfilScreen() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      {/* ==========================================
-          CABEÇALHO
-          ========================================== */}
-
+      {/* CABEÇALHO */}
       <View style={styles.header}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            GV
-          </Text>
+          <Text style={styles.avatarText}>GV</Text>
         </View>
 
         <View style={styles.headerInfo}>
-          <Text style={styles.title}>
-            Meu Perfil
-          </Text>
-
+          <Text style={styles.title}>Meu Perfil</Text>
           <Text style={styles.subtitle}>
             Sua identidade e seu progresso no GameVault.
           </Text>
         </View>
       </View>
 
-      {/* ==========================================
-          PERFIL DO USUÁRIO
-          ========================================== */}
-
+      {/* PERFIL DO USUÁRIO */}
       <View style={styles.profileCard}>
         <View style={styles.profileHeader}>
           <View>
-            <Text style={styles.username}>
-              @teuzMat
-            </Text>
-
-            <Text style={styles.realName}>
-              Mateus Cantanhêde
-            </Text>
+            <Text style={styles.username}>@teuzMat</Text>
+            <Text style={styles.realName}>Mateus Cantanhêde</Text>
           </View>
-
           <View style={styles.memberBadge}>
-            <Text style={styles.memberBadgeText}>
-              GAMER
-            </Text>
+            <Text style={styles.memberBadgeText}>GAMER</Text>
           </View>
         </View>
 
@@ -224,149 +156,71 @@ export default function PerfilScreen() {
 
         <View style={styles.profileDetails}>
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>
-              Membro desde
-            </Text>
-
-            <Text style={styles.detailValue}>
-              agosto de 2026
-            </Text>
+            <Text style={styles.detailLabel}>Membro desde</Text>
+            <Text style={styles.detailValue}>agosto de 2026</Text>
           </View>
-
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>
-              Plataformas
-            </Text>
-
-            <Text style={styles.detailValue}>
-              PC • PlayStation
-            </Text>
+            <Text style={styles.detailLabel}>Plataformas</Text>
+            <Text style={styles.detailValue}>PC • PlayStation</Text>
           </View>
         </View>
       </View>
 
-      {/* ==========================================
-          CADASTRO
-          ========================================== */}
-
+      {/* CADASTRO */}
       <Pressable
         style={({ pressed }) => [
           styles.cadastroButton,
           pressed && styles.cadastroButtonPressed,
         ]}
         onPress={handleCriarConta}
-        android_ripple={{
-          color: '#2D1B4E',
-        }}
+        android_ripple={{ color: '#2D1B4E' }}
       >
-        <Text style={styles.cadastroButtonIcon}>
-          👤
-        </Text>
-
+        <Text style={styles.cadastroButtonIcon}>👤</Text>
         <View style={styles.cadastroButtonContent}>
-          <Text style={styles.cadastroButtonTitle}>
-            Criar uma conta
-          </Text>
-
+          <Text style={styles.cadastroButtonTitle}>Criar uma conta</Text>
           <Text style={styles.cadastroButtonText}>
             Cadastre um novo usuário no GameVault.
           </Text>
         </View>
-
-        <Text style={styles.cadastroButtonArrow}>
-          ›
-        </Text>
+        <Text style={styles.cadastroButtonArrow}>›</Text>
       </Pressable>
 
-      {/* ==========================================
-          ESTATÍSTICAS
-          ========================================== */}
-
-      <Text style={styles.sectionTitle}>
-        Estatísticas
-      </Text>
+      {/* ESTATÍSTICAS (O Grid Responsivo está mantido aqui!) */}
+      <Text style={styles.sectionTitle}>Estatísticas</Text>
 
       <View style={styles.statsGrid}>
-        {/* Jogos */}
-
         <View style={styles.statCard}>
-          <Text style={styles.statIcon}>
-            🎮
-          </Text>
-
-          <Text style={styles.statNumber}>
-            {totalGames}
-          </Text>
-
-          <Text style={styles.statLabel}>
-            Jogos
-          </Text>
+          <Text style={styles.statIcon}>🎮</Text>
+          <Text style={styles.statNumber}>{totalGames}</Text>
+          <Text style={styles.statLabel}>Salvos</Text>
         </View>
 
-        {/* Favoritos */}
-
         <View style={styles.statCard}>
-          <Text style={styles.statIcon}>
-            ♥
-          </Text>
-
-          <Text style={styles.statNumber}>
-            {favoriteCount}
-          </Text>
-
-          <Text style={styles.statLabel}>
-            Favoritos
-          </Text>
+          <Text style={styles.statIcon}>♥</Text>
+          <Text style={styles.statNumber}>{favoriteCount}</Text>
+          <Text style={styles.statLabel}>Favoritos</Text>
         </View>
 
-        {/* Jogando */}
-
         <View style={styles.statCard}>
-          <Text style={styles.statIcon}>
-            ▶
-          </Text>
-
-          <Text style={styles.statNumber}>
-            {playingCount}
-          </Text>
-
-          <Text style={styles.statLabel}>
-            Jogando
-          </Text>
+          <Text style={styles.statIcon}>▶</Text>
+          <Text style={styles.statNumber}>{playingCount}</Text>
+          <Text style={styles.statLabel}>Jogando</Text>
         </View>
 
-        {/* Concluídos */}
-
         <View style={styles.statCard}>
-          <Text style={styles.statIcon}>
-            ✓
-          </Text>
-
-          <Text style={styles.statNumber}>
-            {completedCount}
-          </Text>
-
-          <Text style={styles.statLabel}>
-            Concluídos
-          </Text>
+          <Text style={styles.statIcon}>✓</Text>
+          <Text style={styles.statNumber}>{completedCount}</Text>
+          <Text style={styles.statLabel}>Concluídos</Text>
         </View>
       </View>
 
-      {/* ==========================================
-          PROGRESSO DA BIBLIOTECA
-          ========================================== */}
-
-      <Text style={styles.sectionTitle}>
-        Progresso da biblioteca
-      </Text>
+      {/* PROGRESSO DA BIBLIOTECA */}
+      <Text style={styles.sectionTitle}>Progresso da biblioteca</Text>
 
       <View style={styles.progressCard}>
         <View style={styles.progressHeader}>
           <View>
-            <Text style={styles.progressTitle}>
-              Status dos jogos
-            </Text>
-
+            <Text style={styles.progressTitle}>Status dos jogos</Text>
             <Text style={styles.progressSubtitle}>
               {availableGamesCount} jogos contabilizados
             </Text>
@@ -374,177 +228,98 @@ export default function PerfilScreen() {
         </View>
 
         {/* NÃO JOGADO */}
-
         <View style={styles.statusRow}>
           <View style={styles.statusLabelContainer}>
-            <View
-              style={[
-                styles.statusDot,
-                styles.notPlayedDot,
-              ]}
-            />
-
-            <Text style={styles.statusLabel}>
-              Não jogado
-            </Text>
+            <View style={[styles.statusDot, styles.notPlayedDot]} />
+            <Text style={styles.statusLabel}>Não jogado</Text>
           </View>
-
-          <Text style={styles.statusPercentage}>
-            {notPlayedPercentage}%
-          </Text>
+          <Text style={styles.statusPercentage}>{notPlayedPercentage}%</Text>
         </View>
-
         <View style={styles.progressBar}>
           <View
             style={[
               styles.progressFill,
               styles.notPlayedFill,
-              {
-                width: `${notPlayedPercentage}%`,
-              },
+              { width: `${notPlayedPercentage}%` },
             ]}
           />
         </View>
 
         {/* JOGANDO */}
-
         <View style={styles.statusRow}>
           <View style={styles.statusLabelContainer}>
-            <View
-              style={[
-                styles.statusDot,
-                styles.playingDot,
-              ]}
-            />
-
-            <Text style={styles.statusLabel}>
-              Jogando
-            </Text>
+            <View style={[styles.statusDot, styles.playingDot]} />
+            <Text style={styles.statusLabel}>Jogando</Text>
           </View>
-
-          <Text style={styles.statusPercentage}>
-            {playingPercentage}%
-          </Text>
+          <Text style={styles.statusPercentage}>{playingPercentage}%</Text>
         </View>
-
         <View style={styles.progressBar}>
           <View
             style={[
               styles.progressFill,
               styles.playingFill,
-              {
-                width: `${playingPercentage}%`,
-              },
+              { width: `${playingPercentage}%` },
             ]}
           />
         </View>
 
         {/* CONCLUÍDO */}
-
         <View style={styles.statusRow}>
           <View style={styles.statusLabelContainer}>
-            <View
-              style={[
-                styles.statusDot,
-                styles.completedDot,
-              ]}
-            />
-
-            <Text style={styles.statusLabel}>
-              Concluído
-            </Text>
+            <View style={[styles.statusDot, styles.completedDot]} />
+            <Text style={styles.statusLabel}>Concluído</Text>
           </View>
-
-          <Text style={styles.statusPercentage}>
-            {completedPercentage}%
-          </Text>
+          <Text style={styles.statusPercentage}>{completedPercentage}%</Text>
         </View>
-
         <View style={styles.progressBar}>
           <View
             style={[
               styles.progressFill,
               styles.completedFill,
-              {
-                width: `${completedPercentage}%`,
-              },
+              { width: `${completedPercentage}%` },
             ]}
           />
         </View>
 
         {/* PLATINADO */}
-
         <View style={styles.statusRow}>
           <View style={styles.statusLabelContainer}>
-            <View
-              style={[
-                styles.statusDot,
-                styles.platinumDot,
-              ]}
-            />
-
-            <Text style={styles.statusLabel}>
-              Platinado
-            </Text>
+            <View style={[styles.statusDot, styles.platinumDot]} />
+            <Text style={styles.statusLabel}>Platinado</Text>
           </View>
-
-          <Text style={styles.statusPercentage}>
-            {platinumPercentage}%
-          </Text>
+          <Text style={styles.statusPercentage}>{platinumPercentage}%</Text>
         </View>
-
         <View style={styles.progressBar}>
           <View
             style={[
               styles.progressFill,
               styles.platinumFill,
-              {
-                width: `${platinumPercentage}%`,
-              },
+              { width: `${platinumPercentage}%` },
             ]}
           />
         </View>
 
         {/* AGUARDANDO LANÇAMENTO */}
-
         <View style={styles.progressDivider} />
-
         <View style={styles.upcomingContainer}>
           <View>
-            <Text style={styles.upcomingTitle}>
-              Aguardando lançamento
-            </Text>
-
+            <Text style={styles.upcomingTitle}>Aguardando lançamento</Text>
             <Text style={styles.upcomingDescription}>
               Não contabilizados no progresso
             </Text>
           </View>
-
-          <Text style={styles.upcomingCount}>
-            {upcomingCount}
-          </Text>
+          <Text style={styles.upcomingCount}>{upcomingCount}</Text>
         </View>
-
         <Text style={styles.progressText}>
-          Jogos aguardando lançamento não são
-          contabilizados no percentual de progresso.
+          Jogos aguardando lançamento não são contabilizados no percentual de progresso.
         </Text>
       </View>
 
-      {/* ==========================================
-          RESUMO
-          ========================================== */}
-
+      {/* RESUMO */}
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>
-          Seu GameVault
-        </Text>
-
+        <Text style={styles.summaryTitle}>Seu GameVault</Text>
         <Text style={styles.summaryText}>
-          Você possui {totalGames} jogos cadastrados,
-          sendo {availableGamesCount} disponíveis para
-          acompanhamento e {upcomingCount} aguardando
-          lançamento.
+          Você possui {totalGames} jogos salvos localmente, sendo {availableGamesCount} disponíveis para acompanhamento e {upcomingCount} aguardando lançamento.
         </Text>
       </View>
     </ScrollView>
@@ -558,16 +333,13 @@ const styles = StyleSheet.create({
   },
 
   content: {
+    width: '100%',
+    maxWidth: 900,       // Mantido para responsividade
+    alignSelf: 'center', 
     padding: 20,
     paddingTop: 60,
     paddingBottom: 40,
   },
-
-  /*
-   * ==========================================
-   * CABEÇALHO
-   * ==========================================
-   */
 
   header: {
     flexDirection: 'row',
@@ -607,12 +379,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
-
-  /*
-   * ==========================================
-   * PERFIL
-   * ==========================================
-   */
 
   profileCard: {
     backgroundColor: '#151A27',
@@ -683,12 +449,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  /*
-   * ==========================================
-   * BOTÃO DE CADASTRO
-   * ==========================================
-   */
-
   cadastroButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -739,12 +499,6 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 
-  /*
-   * ==========================================
-   * TÍTULOS DE SEÇÃO
-   * ==========================================
-   */
-
   sectionTitle: {
     color: '#FFFFFF',
     fontSize: 20,
@@ -752,27 +506,21 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
-  /*
-   * ==========================================
-   * ESTATÍSTICAS
-   * ==========================================
-   */
-
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 12, 
     marginBottom: 28,
   },
 
   statCard: {
-    width: '48.5%',
+    flex: 1,
+    minWidth: 130, 
     backgroundColor: '#151A27',
     borderRadius: 18,
     padding: 17,
     borderWidth: 1,
     borderColor: '#202638',
-    marginBottom: 12,
   },
 
   statIcon: {
@@ -791,12 +539,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 3,
   },
-
-  /*
-   * ==========================================
-   * PROGRESSO
-   * ==========================================
-   */
 
   progressCard: {
     backgroundColor: '#151A27',
@@ -904,12 +646,6 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
 
-  /*
-   * ==========================================
-   * AGUARDANDO LANÇAMENTO
-   * ==========================================
-   */
-
   upcomingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -941,12 +677,6 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     marginTop: 10,
   },
-
-  /*
-   * ==========================================
-   * RESUMO
-   * ==========================================
-   */
 
   summaryCard: {
     backgroundColor: '#151A27',

@@ -1,31 +1,47 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router'; // <-- Importado para navegação
 import { useMemo } from 'react';
 import {
+  Pressable, // <-- Importado para tornar os cards clicáveis
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 
-import { games } from '@/constants/games';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { useGameStatus } from '@/contexts/GamesContext'; // <-- Importado para pegar o status dos jogos
 
 export default function HomeScreen() {
+  const router = useRouter();
+  
+  // Pegando os dados salvos no aparelho!
   const { favorites } = useFavorites();
+  const { statuses } = useGameStatus();
 
-  const favoriteGames = useMemo(() => {
-    return games.filter((game) =>
-      favorites.includes(game.id)
-    );
-  }, [favorites]);
-
+  // Filtra os jogos que estão com o status "Jogando"
   const playingGames = useMemo(() => {
-    return games.filter(
-      (game) =>
-        game.status.toLowerCase() === 'jogando'
-    );
-  }, []);
+    return Object.values(statuses)
+      .filter((item) => item.status === 'Jogando')
+      .map((item) => item.game); // Extrai apenas o objeto do jogo
+  }, [statuses]);
+
+  // Calcula o total de jogos únicos salvos (unindo Favoritos e Status)
+  const totalGamesTracked = useMemo(() => {
+    const uniqueIds = new Set([
+      ...favorites.map(f => f.id),
+      ...Object.keys(statuses)
+    ]);
+    return uniqueIds.size;
+  }, [favorites, statuses]);
+
+  const openGame = (gameId: string) => {
+    router.push({
+      pathname: '/jogo/[id]',
+      params: { id: gameId },
+    });
+  };
 
   return (
     <ScrollView
@@ -69,11 +85,11 @@ export default function HomeScreen() {
           </Text>
 
           <Text style={styles.heroNumber}>
-            {games.length}
+            {totalGamesTracked}
           </Text>
 
           <Text style={styles.heroText}>
-            jogos na sua biblioteca
+            jogos salvos localmente
           </Text>
 
           <View style={styles.heroDivider} />
@@ -101,13 +117,11 @@ export default function HomeScreen() {
           <Text style={styles.statIcon}>
             🎮
           </Text>
-
           <Text style={styles.statNumber}>
-            {games.length}
+            {totalGamesTracked}
           </Text>
-
           <Text style={styles.statLabel}>
-            Jogos
+            Salvos
           </Text>
         </View>
 
@@ -115,11 +129,9 @@ export default function HomeScreen() {
           <Text style={styles.statIcon}>
             ♥
           </Text>
-
           <Text style={styles.statNumber}>
-            {favoriteGames.length}
+            {favorites.length}
           </Text>
-
           <Text style={styles.statLabel}>
             Favoritos
           </Text>
@@ -129,11 +141,9 @@ export default function HomeScreen() {
           <Text style={styles.statIcon}>
             ▶
           </Text>
-
           <Text style={styles.statNumber}>
             {playingGames.length}
           </Text>
-
           <Text style={styles.statLabel}>
             Jogando
           </Text>
@@ -155,52 +165,54 @@ export default function HomeScreen() {
       </View>
 
       {playingGames.length > 0 ? (
-        playingGames.slice(0, 3).map((game) => (
-          <View
-            key={game.id}
-            style={styles.gameCard}
-          >
-            <View style={styles.gameCover}>
-              <Image
-                source={game.image}
-                style={styles.gameImage}
-                contentFit="cover"
-                transition={300}
-              />
-            </View>
-
-            <View style={styles.gameInfo}>
-              <Text
-                style={styles.gameTitle}
-                numberOfLines={2}
+        <View style={styles.cardsGrid}>
+          {playingGames.slice(0, 4).map((game, index) => {
+            const platformNames = game.platforms?.map(p => p.platform.name).slice(0, 3).join(', ') || 'Várias plataformas';
+            
+            return (
+              <Pressable 
+                key={game?.id ? String(game.id) : String(index)} 
+                style={styles.gameCard}
+                onPress={() => openGame(game.id)}
               >
-                {game.name}
-              </Text>
+                <View style={styles.gameCover}>
+                  <Image
+                    source={{ uri: game.background_image }}
+                    style={styles.gameImage}
+                    contentFit="cover"
+                    transition={300}
+                  />
+                </View>
 
-              <Text style={styles.gameDetails}>
-                {game.genre} • {game.platform}
-              </Text>
+                <View style={styles.gameInfo}>
+                  <Text
+                    style={styles.gameTitle}
+                    numberOfLines={2}
+                  >
+                    {game.name}
+                  </Text>
 
-              <View style={styles.playingBadge}>
-                <View style={styles.playingDot} />
+                  <Text style={styles.gameDetails} numberOfLines={1}>
+                    {platformNames}
+                  </Text>
 
-                <Text style={styles.playingText}>
-                  Jogando
-                </Text>
-              </View>
-            </View>
-          </View>
-        ))
+                  <View style={styles.playingBadge}>
+                    <View style={styles.playingDot} />
+                    <Text style={styles.playingText}>
+                      Jogando
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
       ) : (
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyIcon}>
-            ▶
-          </Text>
-
+          <Text style={styles.emptyIcon}>▶</Text>
           <Text style={styles.emptyTitle}>
             Nenhum jogo em andamento
           </Text>
-
           <Text style={styles.emptyText}>
             Os jogos marcados como "Jogando" aparecerão
             nesta seção.
@@ -208,71 +220,71 @@ export default function HomeScreen() {
         </View>
       )}
 
-      {/* Jogos em destaque */}
+      {/* Jogos em destaque (Favoritos) */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>
           Em destaque
         </Text>
 
         <Text style={styles.sectionCount}>
-          {favoriteGames.length}{' '}
-          {favoriteGames.length === 1
+          {favorites.length}{' '}
+          {favorites.length === 1
             ? 'favorito'
             : 'favoritos'}
         </Text>
       </View>
 
-      {favoriteGames.length > 0 ? (
-        favoriteGames.slice(0, 3).map((game) => (
-          <View
-            key={game.id}
-            style={styles.gameCard}
-          >
-            <View style={styles.gameCover}>
-              <Image
-                source={game.image}
-                style={styles.gameImage}
-                contentFit="cover"
-                transition={300}
-              />
-            </View>
+      {favorites.length > 0 ? (
+        <View style={styles.cardsGrid}>
+          {favorites.slice(0, 4).map((game, index) => {
+            const platformNames = game.platforms?.map(p => p.platform.name).slice(0, 3).join(', ') || 'Várias plataformas';
+            
+            return (
+              <Pressable 
+                key={game?.id ? String(game.id) : String(index)} 
+                style={styles.gameCard}
+                onPress={() => openGame(game.id)}
+              >
+                <View style={styles.gameCover}>
+                  <Image
+                    source={{ uri: game.background_image }}
+                    style={styles.gameImage}
+                    contentFit="cover"
+                    transition={300}
+                  />
+                </View>
 
-            <View style={styles.gameInfo}>
-              <View style={styles.gameTitleRow}>
-                <Text
-                  style={styles.gameTitle}
-                  numberOfLines={2}
-                >
-                  {game.name}
-                </Text>
+                <View style={styles.gameInfo}>
+                  <View style={styles.gameTitleRow}>
+                    <Text
+                      style={styles.gameTitle}
+                      numberOfLines={2}
+                    >
+                      {game.name}
+                    </Text>
+                    <Text style={styles.favorite}>♥</Text>
+                  </View>
 
-                <Text style={styles.favorite}>
-                  ♥
-                </Text>
-              </View>
+                  <Text style={styles.gameDetails} numberOfLines={1}>
+                    {platformNames}
+                  </Text>
 
-              <Text style={styles.gameDetails}>
-                {game.genre} • {game.platform}
-              </Text>
-
-              <View style={styles.favoriteBadge}>
-                <Text style={styles.favoriteBadgeText}>
-                  Favorito
-                </Text>
-              </View>
-            </View>
-          </View>
-        ))
+                  <View style={styles.favoriteBadge}>
+                    <Text style={styles.favoriteBadgeText}>
+                      Favorito
+                    </Text>
+                  </View>
+                </View>
+              </Pressable>
+            );
+          })}
+        </View>
       ) : (
         <View style={styles.emptyCard}>
-          <Text style={styles.emptyIcon}>
-            ☆
-          </Text>
-
+          <Text style={styles.emptyIcon}>☆</Text>
           <Text style={styles.emptyTitle}>
             Sua coleção está esperando
           </Text>
-
           <Text style={styles.emptyText}>
             Favorite alguns jogos na Biblioteca para
             destacá-los aqui.
@@ -285,7 +297,6 @@ export default function HomeScreen() {
         <Text style={styles.footerText}>
           GameVault
         </Text>
-
         <Text style={styles.footerSubtext}>
           Sua biblioteca gamer em um só lugar.
         </Text>
@@ -301,6 +312,9 @@ const styles = StyleSheet.create({
   },
 
   content: {
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
     padding: 20,
     paddingTop: 60,
     paddingBottom: 40,
@@ -457,14 +471,23 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 
+  cardsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 16,
+  },
+
   gameCard: {
     flexDirection: 'row',
     backgroundColor: '#151A27',
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#202638',
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 300, 
   },
 
   gameCover: {

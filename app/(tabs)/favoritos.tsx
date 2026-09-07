@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { useRouter } from 'expo-router'; // <-- Importado para podermos clicar e ir pro jogo
 import { useMemo } from 'react';
 import {
   FlatList,
@@ -6,30 +7,36 @@ import {
   StyleSheet,
   Text,
   View,
-  useWindowDimensions, // <-- Importado para medir a tela dinamicamente
+  useWindowDimensions,
 } from 'react-native';
 
-import { games } from '@/constants/games';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { useGameStatus } from '@/contexts/GamesContext'; // <-- Importado para pegar o status salvo localmente
 
 export default function FavoritosScreen() {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+
+  // O favorites agora JÁ É uma lista de objetos completos! Não precisamos mais filtrar.
   const { favorites, isFavorite, toggleFavorite, loading } = useFavorites();
-  const { width } = useWindowDimensions(); // <-- Pega a largura atual da tela
-
-  const favoriteGames = useMemo(() => {
-    return games.filter((game) => favorites.includes(game.id));
-  }, [favorites]);
+  const { getStatus } = useGameStatus();
 
   // ==========================================
-  // EVIDÊNCIA 4: LÓGICA DE GRID RESPONSIVO
+  // LÓGICA DE GRID RESPONSIVO
   // ==========================================
-  // Define o número de colunas baseado na largura da tela
   const numColumns = useMemo(() => {
-    if (width >= 1024) return 4; // Monitores grandes (4 jogos por linha)
-    if (width >= 768) return 3;  // Tablets/Monitores médios (3 jogos por linha)
-    if (width >= 600) return 2;  // Celulares grandes na horizontal (2 jogos por linha)
-    return 1;                    // Celulares padrão na vertical (1 jogo por linha)
+    if (width >= 1024) return 4;
+    if (width >= 768) return 3;
+    if (width >= 600) return 2;
+    return 1;
   }, [width]);
+
+  const openGame = (gameId: string) => {
+    router.push({
+      pathname: '/jogo/[id]',
+      params: { id: gameId },
+    });
+  };
 
   if (loading) {
     return (
@@ -44,16 +51,14 @@ export default function FavoritosScreen() {
   return (
     <View style={styles.container}>
       <FlatList
-        // O key é necessário aqui porque o FlatList precisa ser recriado se o numColumns mudar
         key={`grid-${numColumns}`}
         numColumns={numColumns} 
-        data={favoriteGames}
-        keyExtractor={(item) => item.id}
-        // O columnWrapperStyle só pode ser passado se tiver mais de 1 coluna
+        data={favorites} // <-- Usando os dados diretos do AsyncStorage
+        keyExtractor={(item, index) => item?.id ? String(item.id) : String(index)}
         columnWrapperStyle={numColumns > 1 ? styles.row : undefined}
         contentContainerStyle={[
           styles.content,
-          favoriteGames.length === 0 && styles.emptyContent,
+          favorites.length === 0 && styles.emptyContent,
         ]}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
@@ -66,61 +71,71 @@ export default function FavoritosScreen() {
               Seus jogos favoritos em um só lugar.
             </Text>
 
-            {favoriteGames.length > 0 && (
+            {favorites.length > 0 && (
               <Text style={styles.resultText}>
-                {favoriteGames.length}{' '}
-                {favoriteGames.length === 1
+                {favorites.length}{' '}
+                {favorites.length === 1
                   ? 'jogo favorito'
                   : 'jogos favoritos'}
               </Text>
             )}
           </View>
         }
-        renderItem={({ item }) => (
-          <View style={styles.gameCard}>
-            {/* Capa */}
-            <View style={styles.coverContainer}>
-              <Image
-                source={item.image}
-                style={styles.cover}
-                contentFit="cover"
-                transition={300}
-              />
-            </View>
+        renderItem={({ item }) => {
+          // Busca o status salvo localmente
+          const currentStatus = getStatus(item.id.toString(), 'Não jogado');
+          const platformNames = item.platforms?.map(p => p.platform.name).slice(0, 3).join(', ') || 'Várias plataformas';
 
-            {/* Informações */}
-            <View style={styles.gameInfo}>
-              <View style={styles.gameTitleRow}>
-                <Text
-                  style={styles.gameTitle}
-                  numberOfLines={2}
-                >
-                  {item.name}
-                </Text>
+          return (
+            // Transformei em Pressable para podermos clicar no Favorito e ver os detalhes!
+            <Pressable 
+              style={styles.gameCard}
+              onPress={() => openGame(item.id.toString())}
+            >
+              {/* Capa */}
+              <View style={styles.coverContainer}>
+                <Image
+                  source={{ uri: item.background_image }} // Imagem salva do RAWG API
+                  style={styles.cover}
+                  contentFit="cover"
+                  transition={300}
+                />
+              </View>
 
-                <Pressable
-                  onPress={() => toggleFavorite(item.id)}
-                  style={styles.favoriteButton}
-                  hitSlop={8}
-                >
-                  <Text style={styles.favorite}>
-                    {isFavorite(item.id) ? '♥' : '♡'}
+              {/* Informações */}
+              <View style={styles.gameInfo}>
+                <View style={styles.gameTitleRow}>
+                  <Text
+                    style={styles.gameTitle}
+                    numberOfLines={2}
+                  >
+                    {item.name}
                   </Text>
-                </Pressable>
-              </View>
 
-              <Text style={styles.details}>
-                {item.genre} • {item.platform}
-              </Text>
+                  <Pressable
+                    onPress={() => toggleFavorite(item)} // Enviando o objeto inteiro como o Contexto pede agora
+                    style={styles.favoriteButton}
+                    hitSlop={8}
+                  >
+                    <Text style={styles.favorite}>
+                      {isFavorite(item.id.toString()) ? '♥' : '♡'}
+                    </Text>
+                  </Pressable>
+                </View>
 
-              <View style={styles.statusContainer}>
-                <Text style={styles.status}>
-                  {item.status}
+                <Text style={styles.details} numberOfLines={1}>
+                  {platformNames}
                 </Text>
+
+                <View style={styles.statusContainer}>
+                  <Text style={styles.status}>
+                    {currentStatus}
+                  </Text>
+                </View>
               </View>
-            </View>
-          </View>
-        )}
+            </Pressable>
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyIcon}>
@@ -154,6 +169,9 @@ const styles = StyleSheet.create({
   },
 
   content: {
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
     padding: 20,
     paddingTop: 60,
     paddingBottom: 30,
@@ -185,18 +203,15 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 
-  // ==========================================
-  // EVIDÊNCIA 3: FLEXBOX PARA DISTRIBUIR O GRID
-  // ==========================================
   row: {
     flex: 1,
-    gap: 16, // Espaçamento entre os cartões na mesma linha (suportado no React Native mais recente)
+    gap: 16,
     justifyContent: 'flex-start',
   },
 
   gameCard: {
-    flex: 1, // Faz com que os cartões na mesma linha dividam o espaço igualmente
-    minWidth: '20%', // Garante que o cartão não fique muito esmagado se tiver muitos na tela
+    flex: 1,
+    minWidth: '20%',
     backgroundColor: '#151A27',
     borderRadius: 18,
     overflow: 'hidden',

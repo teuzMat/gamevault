@@ -20,7 +20,7 @@ O GameVault foi desenvolvido como projeto acadêmico para a disciplina de React 
 - Aplicação avançada de Flexbox e StyleSheet dinâmicos.
 O projeto também foi desenvolvido com foco em proporcionar uma experiência semelhante a uma biblioteca pessoal de jogos.
 ---
-# 🚀 Versão atual — 1.3
+# 🚀 Versão atual — 1.4 - Incompleta
 A versão 1.3 representa o aprimoramento visual e estrutural do GameVault, focando em responsividade universal (Mobile, Tablet e Desktop) e estilização avançada de componentes.
 Foram adicionados:
 - Responsividade global para a Web/Desktop;
@@ -132,6 +132,6 @@ O projeto tem como objetivo aplicar, de forma prática, os conceitos apresentado
 # 👨‍💻 Projeto acadêmico
 Projeto desenvolvido para fins acadêmicos no curso de **Análise e Desenvolvimento de Sistemas**.
 **Projeto:** GameVault
-**Versão:** 1.3
+**Versão:** 1.4
 **Tecnologia principal:** React Native + Expo
 **Autor:** Mateus

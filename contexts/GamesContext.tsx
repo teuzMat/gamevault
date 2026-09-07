@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { MinimalGame } from './FavoritesContext'; // Importando a tipagem que criamos no Favorites!
 
 export type GameStatus =
   | 'Não jogado'
@@ -8,12 +9,21 @@ export type GameStatus =
   | 'Platinado'
   | 'Aguardando Lançamento';
 
-type GameStatusMap = Record<string, GameStatus>;
+// ==========================================
+// NOVA ESTRUTURA: Objeto minimalista + Status
+// ==========================================
+export type StoredGameStatus = {
+  status: GameStatus;
+  game: MinimalGame;
+};
+
+// Agora o mapa guarda o ID do jogo e o objeto StoredGameStatus (que tem o status e a capa)
+type GameStatusMap = Record<string, StoredGameStatus>;
 
 type GameStatusContextData = {
   statuses: GameStatusMap;
   getStatus: (gameId: string, defaultStatus: GameStatus) => GameStatus;
-  setStatus: (gameId: string, status: GameStatus) => Promise<void>;
+  setStatus: (game: MinimalGame, status: GameStatus) => Promise<void>; // Agora recebe o objeto inteiro
   loading: boolean;
 };
 
@@ -21,7 +31,8 @@ const GameStatusContext = createContext<GameStatusContextData | undefined>(
   undefined
 );
 
-const STORAGE_KEY = '@gamevault_game_status';
+// Nova chave para evitar conflito com os dados antigos e quebrar o app
+const STORAGE_KEY = '@gamevault:game_status_v3';
 
 export function GameStatusProvider({ children }: { children: ReactNode }) {
   const [statuses, setStatuses] = useState<GameStatusMap>({});
@@ -49,16 +60,20 @@ export function GameStatusProvider({ children }: { children: ReactNode }) {
     gameId: string,
     defaultStatus: GameStatus
   ): GameStatus => {
-    return statuses[gameId] ?? defaultStatus;
+    // Busca o status dentro do novo objeto salvo
+    return statuses[gameId]?.status ?? defaultStatus;
   };
 
   const setStatus = async (
-    gameId: string,
+    game: MinimalGame,
     status: GameStatus
   ): Promise<void> => {
     const updatedStatuses = {
       ...statuses,
-      [gameId]: status,
+      [game.id]: {
+        status,
+        game,
+      },
     };
 
     setStatuses(updatedStatuses);

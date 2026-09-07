@@ -1,18 +1,30 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, {
-    createContext,
-    ReactNode,
-    useContext,
-    useEffect,
-    useState,
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
 } from 'react';
 
-const FAVORITES_KEY = '@gamevault:favorites';
+// ==========================================
+// NOVA ESTRUTURA: Objeto minimalista
+// ==========================================
+export type MinimalGame = {
+  id: string;
+  name: string;
+  background_image: string;
+  rating: number;
+  platforms: { platform: { name: string } }[];
+};
+
+// Nova chave para evitar conflito com os arrays de string da versão anterior
+const FAVORITES_KEY = '@gamevault:favorites_v3';
 
 type FavoritesContextData = {
-  favorites: string[];
+  favorites: MinimalGame[]; // Agora é um array de objetos, não mais de strings
   isFavorite: (gameId: string) => boolean;
-  toggleFavorite: (gameId: string) => Promise<void>;
+  toggleFavorite: (game: MinimalGame) => Promise<void>; // Agora recebe o objeto inteiro
   loading: boolean;
 };
 
@@ -27,7 +39,7 @@ type FavoritesProviderProps = {
 export function FavoritesProvider({
   children,
 }: FavoritesProviderProps) {
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [favorites, setFavorites] = useState<MinimalGame[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,13 +60,14 @@ export function FavoritesProvider({
     }
   }
 
-  async function toggleFavorite(gameId: string) {
+  async function toggleFavorite(game: MinimalGame) {
     try {
-      const isCurrentlyFavorite = favorites.includes(gameId);
+      // Verifica se o jogo já existe comparando os IDs
+      const isCurrentlyFavorite = favorites.some((g) => g.id === game.id);
 
       const updatedFavorites = isCurrentlyFavorite
-        ? favorites.filter((id) => id !== gameId)
-        : [...favorites, gameId];
+        ? favorites.filter((g) => g.id !== game.id) // Remove se já existir
+        : [...favorites, game]; // Adiciona o objeto completo se não existir
 
       setFavorites(updatedFavorites);
 
@@ -68,7 +81,7 @@ export function FavoritesProvider({
   }
 
   function isFavorite(gameId: string) {
-    return favorites.includes(gameId);
+    return favorites.some((g) => g.id === gameId);
   }
 
   return (

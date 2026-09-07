@@ -97,54 +97,57 @@ export default function TecnologiasScreen() {
         Bibliotecas
       </Text>
 
-      {technologies.map((technology, index) => (
-        <View
-          key={technology.name}
-          style={styles.techCard}
-        >
-          <View style={styles.techHeader}>
-            <View style={styles.iconContainer}>
-              <Text style={styles.icon}>
-                {technology.icon}
-              </Text>
-            </View>
-
-            <View style={styles.techTitleContainer}>
-              <Text style={styles.techNumber}>
-                PACOTE {String(index + 1).padStart(2, '0')}
-              </Text>
-
-              <Text style={styles.techName}>
-                {technology.name}
-              </Text>
-
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>
-                  {technology.category}
+      {/* NOVIDADE: Container de Grid para as Tecnologias */}
+      <View style={styles.techGrid}>
+        {technologies.map((technology, index) => (
+          <View
+            key={technology.name}
+            style={styles.techCard}
+          >
+            <View style={styles.techHeader}>
+              <View style={styles.iconContainer}>
+                <Text style={styles.icon}>
+                  {technology.icon}
                 </Text>
               </View>
+
+              <View style={styles.techTitleContainer}>
+                <Text style={styles.techNumber}>
+                  PACOTE {String(index + 1).padStart(2, '0')}
+                </Text>
+
+                <Text style={styles.techName}>
+                  {technology.name}
+                </Text>
+
+                <View style={styles.categoryBadge}>
+                  <Text style={styles.categoryText}>
+                    {technology.category}
+                  </Text>
+                </View>
+              </View>
             </View>
+
+            <View style={styles.divider} />
+
+            <Text style={styles.descriptionLabel}>
+              O que faz
+            </Text>
+
+            <Text style={styles.description}>
+              {technology.description}
+            </Text>
+
+            <Text style={styles.descriptionLabel}>
+              Utilização no GameVault
+            </Text>
+
+            <Text style={styles.usage}>
+              {technology.usage}
+            </Text>
           </View>
-
-          <View style={styles.divider} />
-
-          <Text style={styles.descriptionLabel}>
-            O que faz
-          </Text>
-
-          <Text style={styles.description}>
-            {technology.description}
-          </Text>
-
-          <Text style={styles.descriptionLabel}>
-            Utilização no GameVault
-          </Text>
-
-          <Text style={styles.usage}>
-            {technology.usage}
-          </Text>
-        </View>
-      ))}
+        ))}
+      </View>
 
       {/* Resumo */}
       <View style={styles.summaryCard}>
@@ -184,6 +187,9 @@ const styles = StyleSheet.create({
   },
 
   content: {
+    width: '100%',
+    maxWidth: 900,       // Mantém o alinhamento central em telas grandes
+    alignSelf: 'center', // Centraliza o conteúdo no Desktop
     padding: 20,
     paddingTop: 60,
     paddingBottom: 40,
@@ -262,13 +268,21 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
+  // NOVIDADE: O Grid Container para que os cards dividam a tela
+  techGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 14, // Espaçamento automático entre colunas e linhas
+  },
+
   techCard: {
+    flex: 1,
+    minWidth: 300, // Permite 2 colunas lado a lado no Desktop, 1 no Mobile
     backgroundColor: '#151A27',
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#202638',
     padding: 18,
-    marginBottom: 14,
   },
 
   techHeader: {
@@ -356,7 +370,7 @@ const styles = StyleSheet.create({
     borderColor: '#30264D',
     padding: 22,
     alignItems: 'center',
-    marginTop: 14,
+    marginTop: 28, // Ajustado porque tiramos a margem de baixo dos techCards
   },
 
   summaryIcon: {
