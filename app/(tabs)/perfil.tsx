@@ -1,5 +1,9 @@
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import {
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -7,705 +11,258 @@ import {
   View,
 } from 'react-native';
 
-import { router } from 'expo-router';
-
-import { useAuth } from '@/contexts/AuthContext';
-import { useFavorites } from '@/contexts/FavoritesContext';
-import {
-  GameStatus,
-  useGameStatus,
-} from '@/contexts/GamesContext';
+import { useGameStatus } from '@/contexts/GamesContext';
 
 export default function PerfilScreen() {
-  const { favorites } = useFavorites();
+  const router = useRouter();
   const { statuses } = useGameStatus();
-  const { userProfile, logout } = useAuth(); // Puxando o perfil da nuvem e a função de sair
 
-  /*
-   * ==========================================
-   * LÓGICA DE DADOS DINÂMICOS (API)
-   * ==========================================
-   */
-  const trackedGamesWithStatus = useMemo(() => {
-    const gameMap = new Map<string, { status: GameStatus }>();
+  const { stats, uniquePlatforms, recentPlatinums, recentWishlist } = useMemo(() => {
+    const values = Object.values(statuses || {});
+    const libraryItems = values.filter((item) => item.status !== 'Não jogado');
 
-    Object.entries(statuses).forEach(([id, data]) => {
-      gameMap.set(id, { status: data.status });
+    const totalGames = libraryItems.length;
+    const completed = libraryItems.filter((item) => item.status === 'Concluído').length;
+    const platinated = libraryItems.filter((item) => item.status === 'Platinado').length;
+    const playing = libraryItems.filter((item) => item.status === 'Jogando').length;
+    const wishlistCount = libraryItems.filter((item) => item.status === 'Na lista para jogar').length;
+    
+    const totalAchievements = libraryItems.reduce((acc, curr) => acc + ((curr as any).achievementsObtained || 0), 0);
+
+    const allPlatforms = new Set<string>();
+    libraryItems.forEach((item) => {
+      item.selectedPlatforms?.forEach((p) => {
+        let shortName = p;
+        if (p.includes('PlayStation')) shortName = p.replace('PlayStation ', 'PS');
+        if (p.includes('Xbox Series')) shortName = 'Xbox S/X';
+        if (p.includes('Nintendo')) shortName = 'Switch';
+        allPlatforms.add(shortName);
+      });
     });
+    const platformsArray = Array.from(allPlatforms).slice(0, 4);
 
-    favorites.forEach((game) => {
-      if (!gameMap.has(game.id)) {
-        gameMap.set(game.id, { status: 'Não jogado' });
+    const reversedLibrary = [...libraryItems].reverse();
+    const platinums = reversedLibrary.filter(item => item.status === 'Platinado').slice(0, 3);
+    const wishlist = reversedLibrary.filter(item => item.status === 'Na lista para jogar').slice(0, 3);
+
+    return {
+      stats: { totalGames, completed, platinated, playing, wishlistCount, totalAchievements },
+      uniquePlatforms: platformsArray,
+      recentPlatinums: platinums,
+      recentWishlist: wishlist,
+    };
+  }, [statuses]);
+
+  const openGame = (gameId: string) => {
+    router.push({
+      pathname: '/jogo/[id]',
+      params: { id: gameId },
+    });
+  };
+
+  const openLibraryWithFilter = (filterName: string) => {
+    router.push({
+      pathname: '/biblioteca',
+      params: { filter: filterName },
+    });
+  };
+
+  // ==========================================
+  // LÓGICA DE LOGOFF SEGURO (MÓVEL E WEB)
+  // ==========================================
+  const handleLogout = () => {
+    if (Platform.OS === 'web') {
+      // Navegadores usam o window.confirm padrão
+      const desejaSair = window.confirm('Tem certeza que deseja sair do GameVault?');
+      if (desejaSair) {
+        // Substitui a navegação atual pela raiz (sua tela de Login/Logoff)
+        router.replace('/'); 
       }
-    });
-
-    return Array.from(gameMap.values());
-  }, [favorites, statuses]);
-
-  const availableGames = useMemo(() => {
-    return trackedGamesWithStatus.filter(
-      (game) => game.status !== 'Aguardando Lançamento'
-    );
-  }, [trackedGamesWithStatus]);
-
-  const totalGames = trackedGamesWithStatus.length;
-  const availableGamesCount = availableGames.length;
-  const favoriteCount = favorites.length;
-
-  const playingCount = useMemo(() => {
-    return availableGames.filter((game) => game.status === 'Jogando').length;
-  }, [availableGames]);
-
-  const completedCount = useMemo(() => {
-    return availableGames.filter((game) => game.status === 'Concluído').length;
-  }, [availableGames]);
-
-  const platinumCount = useMemo(() => {
-    return availableGames.filter((game) => game.status === 'Platinado').length;
-  }, [availableGames]);
-
-  const notPlayedCount = useMemo(() => {
-    return availableGames.filter((game) => game.status === 'Não jogado').length;
-  }, [availableGames]);
-
-  const upcomingCount = useMemo(() => {
-    return trackedGamesWithStatus.filter(
-      (game) => game.status === 'Aguardando Lançamento'
-    ).length;
-  }, [trackedGamesWithStatus]);
-
-  const getPercentage = (count: number) => {
-    if (availableGamesCount === 0) {
-      return 0;
+    } else {
+      // iOS e Android usam o Alert nativo
+      Alert.alert(
+        'Sair da Conta',
+        'Tem certeza que deseja sair do GameVault?',
+        [
+          {
+            text: 'Cancelar',
+            style: 'cancel',
+          },
+          {
+            text: 'Sair',
+            style: 'destructive',
+            onPress: () => {
+              // Substitui a navegação atual pela raiz
+              router.replace('/'); 
+            },
+          },
+        ]
+      );
     }
-    return Math.round((count / availableGamesCount) * 100);
   };
 
-  const playingPercentage = getPercentage(playingCount);
-  const completedPercentage = getPercentage(completedCount);
-  const platinumPercentage = getPercentage(platinumCount);
-  const notPlayedPercentage = getPercentage(notPlayedCount);
-
-  const handleIrParaLogin = () => {
-    router.navigate('/login');
-  };
-
-  const handleLogout = async () => {
-    await logout();
-    router.replace('/login');
-  };
+  const renderMiniCard = (item: any) => (
+    <Pressable
+      key={item.game.id}
+      style={styles.miniCard}
+      onPress={() => openGame(item.game.id.toString())}
+    >
+      <Image
+        source={{ uri: item.game.background_image }}
+        style={styles.miniCover}
+        contentFit="cover"
+        transition={200}
+      />
+      <View style={styles.miniCardInfo}>
+        <Text style={styles.miniCardTitle} numberOfLines={1}>
+          {item.game.name}
+        </Text>
+        <Text style={styles.miniCardSubtitle}>
+          {item.status === 'Platinado' ? '★ Troféu Máximo' : '🔖 Adicionado à fila'}
+        </Text>
+      </View>
+      <Text style={styles.miniCardArrow}>›</Text>
+    </Pressable>
+  );
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* CABEÇALHO */}
-      <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>GV</Text>
-        </View>
-
-        <View style={styles.headerInfo}>
-          <Text style={styles.title}>Meu Perfil</Text>
-          <Text style={styles.subtitle}>
-            Sua identidade e seu progresso no GameVault.
-          </Text>
-        </View>
-      </View>
-
-      {/* PERFIL DO USUÁRIO (Dados Reais da Nuvem) */}
-      <View style={styles.profileCard}>
+    <View style={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.content}
+      >
         <View style={styles.profileHeader}>
-          <View>
-            <Text style={styles.username}>
-              {userProfile?.username ? `@${userProfile.username}` : '@gamervault0607'}
-            </Text>
-            <Text style={styles.realName}>
-              {userProfile?.nome || 'Carregando...'}
-            </Text>
+          <View style={styles.avatarContainer}>
+            <Text style={styles.avatarText}>TM</Text>
           </View>
-          <View style={styles.memberBadge}>
-            <Text style={styles.memberBadgeText}>GAMER</Text>
-          </View>
-        </View>
-
-        <View style={styles.profileDivider} />
-
-        <View style={styles.profileDetails}>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Membro desde</Text>
-            <Text style={styles.detailValue}>
-              {userProfile?.createdAt 
-                ? new Date(userProfile.createdAt).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) 
-                : 'agosto de 2026'}
-            </Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Plataformas</Text>
-            <Text style={styles.detailValue}>PC • PlayStation</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* BOTÃO DE LOGIN / TROCAR DE CONTA */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.cadastroButton,
-          pressed && styles.cadastroButtonPressed,
-        ]}
-        onPress={handleIrParaLogin}
-        android_ripple={{ color: '#2D1B4E' }}
-      >
-        <View style={styles.cadastroButtonIcon}>
-          <Text style={{ fontSize: 20 }}>👤</Text>
-        </View>
-        <View style={styles.cadastroButtonContent}>
-          <Text style={styles.cadastroButtonTitle}>Acessar outra conta</Text>
-          <Text style={styles.cadastroButtonText}>
-            Entrar com outro e-mail no GameVault.
-          </Text>
-        </View>
-        <Text style={styles.cadastroButtonArrow}>›</Text>
-      </Pressable>
-
-      {/* BOTÃO DE SAIR (LOGOUT) */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.cadastroButton,
-          { borderColor: '#EF4444', marginBottom: 28 },
-          pressed && styles.cadastroButtonPressed,
-        ]}
-        onPress={handleLogout}
-        android_ripple={{ color: '#451A1A' }}
-      >
-        <View style={[styles.cadastroButtonIcon, { backgroundColor: '#2F1515' }]}>
-          <Text style={{ fontSize: 20 }}>🚪</Text>
-        </View>
-        <View style={styles.cadastroButtonContent}>
-          <Text style={styles.cadastroButtonTitle}>Sair da conta</Text>
-          <Text style={styles.cadastroButtonText}>
-            Encerrar sessão atual no GameVault.
-          </Text>
-        </View>
-        <Text style={[styles.cadastroButtonArrow, { color: '#EF4444' }]}>›</Text>
-      </Pressable>
-
-      {/* ESTATÍSTICAS */}
-      <Text style={styles.sectionTitle}>Estatísticas</Text>
-
-      <View style={styles.statsGrid}>
-        <View style={styles.statCard}>
-          <Text style={styles.statIcon}>🎮</Text>
-          <Text style={styles.statNumber}>{totalGames}</Text>
-          <Text style={styles.statLabel}>Salvos</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statIcon}>♥</Text>
-          <Text style={styles.statNumber}>{favoriteCount}</Text>
-          <Text style={styles.statLabel}>Favoritos</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statIcon}>▶</Text>
-          <Text style={styles.statNumber}>{playingCount}</Text>
-          <Text style={styles.statLabel}>Jogando</Text>
-        </View>
-
-        <View style={styles.statCard}>
-          <Text style={styles.statIcon}>✓</Text>
-          <Text style={styles.statNumber}>{completedCount}</Text>
-          <Text style={styles.statLabel}>Concluídos</Text>
-        </View>
-      </View>
-
-      {/* PROGRESSO DA BIBLIOTECA */}
-      <Text style={styles.sectionTitle}>Progresso da biblioteca</Text>
-
-      <View style={styles.progressCard}>
-        <View style={styles.progressHeader}>
-          <View>
-            <Text style={styles.progressTitle}>Status dos jogos</Text>
-            <Text style={styles.progressSubtitle}>
-              {availableGamesCount} jogos contabilizados
-            </Text>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileNickname}>@teuzMat</Text>
+            <Text style={styles.profileName}>Mateus Cantanhêde</Text>
+            
+            {uniquePlatforms.length > 0 && (
+              <View style={styles.platformBadgeContainer}>
+                {uniquePlatforms.map(plat => (
+                  <View key={plat} style={styles.platformBadge}>
+                    <Text style={styles.platformBadgeText}>{plat}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         </View>
 
-        {/* NÃO JOGADO */}
-        <View style={styles.statusRow}>
-          <View style={styles.statusLabelContainer}>
-            <View style={[styles.statusDot, styles.notPlayedDot]} />
-            <Text style={styles.statusLabel}>Não jogado</Text>
+        <Text style={styles.sectionTitle}>Visão Geral</Text>
+        <View style={styles.statsGrid}>
+          <View style={styles.statCard}>
+            <Text style={styles.statValue}>{stats.totalGames}</Text>
+            <Text style={styles.statLabel}>Jogos na Biblioteca</Text>
           </View>
-          <Text style={styles.statusPercentage}>{notPlayedPercentage}%</Text>
-        </View>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              styles.notPlayedFill,
-              { width: `${notPlayedPercentage}%` },
-            ]}
-          />
+
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: '#A78BFA' }]}>{stats.totalAchievements}</Text>
+            <Text style={styles.statLabel}>Conquistas Obtidas</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: '#FBBF24' }]}>{stats.platinated}</Text>
+            <Text style={styles.statLabel}>Platinados</Text>
+          </View>
+
+          <View style={styles.statCard}>
+            <Text style={[styles.statValue, { color: '#34D399' }]}>{stats.completed}</Text>
+            <Text style={styles.statLabel}>Concluídos</Text>
+          </View>
         </View>
 
-        {/* JOGANDO */}
-        <View style={styles.statusRow}>
-          <View style={styles.statusLabelContainer}>
-            <View style={[styles.statusDot, styles.playingDot]} />
-            <Text style={styles.statusLabel}>Jogando</Text>
-          </View>
-          <Text style={styles.statusPercentage}>{playingPercentage}%</Text>
-        </View>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              styles.playingFill,
-              { width: `${playingPercentage}%` },
-            ]}
-          />
-        </View>
+        {recentPlatinums.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <Text style={styles.sectionTitle}>Últimas Platinas</Text>
+                <Text style={styles.sectionIcon}>🏆</Text>
+              </View>
+              <Pressable onPress={() => openLibraryWithFilter('Platinado')} hitSlop={10}>
+                <Text style={styles.seeAllText}>Ver todos ›</Text>
+              </Pressable>
+            </View>
+            <View style={styles.listContainer}>
+              {recentPlatinums.map(renderMiniCard)}
+            </View>
+          </>
+        )}
 
-        {/* CONCLUÍDO */}
-        <View style={styles.statusRow}>
-          <View style={styles.statusLabelContainer}>
-            <View style={[styles.statusDot, styles.completedDot]} />
-            <Text style={styles.statusLabel}>Concluído</Text>
-          </View>
-          <Text style={styles.statusPercentage}>{completedPercentage}%</Text>
-        </View>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              styles.completedFill,
-              { width: `${completedPercentage}%` },
-            ]}
-          />
-        </View>
+        {recentWishlist.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <Text style={styles.sectionTitle}>Na Fila para Jogar</Text>
+                <Text style={styles.sectionIcon}>⏳</Text>
+              </View>
+              <Pressable onPress={() => openLibraryWithFilter('Na lista para jogar')} hitSlop={10}>
+                <Text style={styles.seeAllText}>Ver todos ›</Text>
+              </Pressable>
+            </View>
+            <View style={styles.listContainer}>
+              {recentWishlist.map(renderMiniCard)}
+            </View>
+          </>
+        )}
 
-        {/* PLATINADO */}
-        <View style={styles.statusRow}>
-          <View style={styles.statusLabelContainer}>
-            <View style={[styles.statusDot, styles.platinumDot]} />
-            <Text style={styles.statusLabel}>Platinado</Text>
-          </View>
-          <Text style={styles.statusPercentage}>{platinumPercentage}%</Text>
-        </View>
-        <View style={styles.progressBar}>
-          <View
-            style={[
-              styles.progressFill,
-              styles.platinumFill,
-              { width: `${platinumPercentage}%` },
-            ]}
-          />
-        </View>
+        {/* ========================================== */}
+        {/* BOTÃO DE LOGOFF NO FIM DA TELA */}
+        {/* ========================================== */}
+        <Pressable style={styles.logoutButton} onPress={handleLogout}>
+          <Text style={styles.logoutButtonText}>Sair da Conta</Text>
+        </Pressable>
 
-        {/* AGUARDANDO LANÇAMENTO */}
-        <View style={styles.progressDivider} />
-        <View style={styles.upcomingContainer}>
-          <View>
-            <Text style={styles.upcomingTitle}>Aguardando lançamento</Text>
-            <Text style={styles.upcomingDescription}>
-              Não contabilizados no progresso
-            </Text>
-          </View>
-          <Text style={styles.upcomingCount}>{upcomingCount}</Text>
-        </View>
-        <Text style={styles.progressText}>
-          Jogos aguardando lançamento não são contabilizados no percentual de progresso.
-        </Text>
-      </View>
-
-      {/* RESUMO */}
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryTitle}>Seu GameVault</Text>
-        <Text style={styles.summaryText}>
-          Você possui {totalGames} jogos salvos localmente, sendo {availableGamesCount} disponíveis para acompanhamento e {upcomingCount} aguardando lançamento.
-        </Text>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#0B0F19',
-  },
-
-  content: {
-    width: '100%',
-    maxWidth: 900,
-    alignSelf: 'center', 
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
-
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-
-  avatar: {
-    width: 58,
-    height: 58,
-    borderRadius: 18,
-    backgroundColor: '#7C3AED',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 14,
-  },
-
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '900',
-  },
-
-  headerInfo: {
-    flex: 1,
-  },
-
-  title: {
-    color: '#FFFFFF',
-    fontSize: 30,
-    fontWeight: '800',
-    marginBottom: 5,
-  },
-
-  subtitle: {
-    color: '#9CA3AF',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-
-  profileCard: {
-    backgroundColor: '#151A27',
-    borderRadius: 20,
-    padding: 20,
+  container: { flex: 1, backgroundColor: '#0B0F19' },
+  content: { width: '100%', maxWidth: 900, alignSelf: 'center', padding: 20, paddingTop: 60, paddingBottom: 40 },
+  profileHeader: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#151A27', borderRadius: 20, padding: 20, borderWidth: 1, borderColor: '#202638', marginBottom: 24 },
+  avatarContainer: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#7C3AED', alignItems: 'center', justifyContent: 'center', marginRight: 16, borderWidth: 2, borderColor: '#A855F7' },
+  avatarText: { color: '#FFFFFF', fontSize: 26, fontWeight: '900', letterSpacing: 1 },
+  profileInfo: { flex: 1 },
+  profileNickname: { color: '#FFFFFF', fontSize: 22, fontWeight: '900', marginBottom: 2 },
+  profileName: { color: '#9CA3AF', fontSize: 13, fontWeight: '600', marginBottom: 10 },
+  platformBadgeContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  platformBadge: { backgroundColor: '#21183A', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#7C3AED' },
+  platformBadgeText: { color: '#D8B4FE', fontSize: 10, fontWeight: '700' },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, marginBottom: 14 },
+  sectionHeaderLeft: { flexDirection: 'row', alignItems: 'center' },
+  sectionTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '800' },
+  sectionIcon: { fontSize: 20, marginLeft: 6 },
+  seeAllText: { color: '#A78BFA', fontSize: 13, fontWeight: '700' },
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginBottom: 24, marginTop: 14 },
+  statCard: { flex: 1, minWidth: '45%', backgroundColor: '#151A27', borderRadius: 18, padding: 20, alignItems: 'center', borderWidth: 1, borderColor: '#202638' },
+  statValue: { color: '#FFFFFF', fontSize: 32, fontWeight: '900', marginBottom: 6 },
+  statLabel: { color: '#9CA3AF', fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  listContainer: { backgroundColor: '#151A27', borderRadius: 18, padding: 12, borderWidth: 1, borderColor: '#202638', marginBottom: 24 },
+  miniCard: { flexDirection: 'row', alignItems: 'center', padding: 8, borderRadius: 12, marginBottom: 8, backgroundColor: '#101521' },
+  miniCover: { width: 48, height: 48, borderRadius: 8, marginRight: 14, backgroundColor: '#1B2130' },
+  miniCardInfo: { flex: 1, justifyContent: 'center' },
+  miniCardTitle: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', marginBottom: 4 },
+  miniCardSubtitle: { color: '#9CA3AF', fontSize: 11, fontWeight: '600' },
+  miniCardArrow: { color: '#6B7280', fontSize: 24, paddingHorizontal: 10 },
+  
+  // ESTILOS DO BOTÃO DE LOGOFF
+  logoutButton: {
+    marginTop: 10,
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
     borderWidth: 1,
-    borderColor: '#202638',
-    marginBottom: 14,
-  },
-
-  profileHeader: {
-    flexDirection: 'row',
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-
-  username: {
-    color: '#A78BFA',
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-
-  realName: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '800',
-  },
-
-  memberBadge: {
-    backgroundColor: '#21183A',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-
-  memberBadgeText: {
-    color: '#A855F7',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-
-  profileDivider: {
-    height: 1,
-    backgroundColor: '#252B3A',
-    marginVertical: 18,
-  },
-
-  profileDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-
-  detailItem: {
-    flex: 1,
-  },
-
-  detailLabel: {
-    color: '#6B7280',
-    fontSize: 11,
-    marginBottom: 5,
-  },
-
-  detailValue: {
-    color: '#D1D5DB',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  cadastroButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#151A27',
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#7C3AED',
-    padding: 16,
-    marginBottom: 14,
-  },
-
-  cadastroButtonPressed: {
-    opacity: 0.75,
-  },
-
-  cadastroButtonIcon: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',       // <--- Adicionado
-    justifyContent: 'center',   // <--- Adicionado
-    borderRadius: 13,
-    backgroundColor: '#21183A',
-    textAlign: 'center',
-    textAlignVertical: 'center',
-    fontSize: 20,
-    marginRight: 13,
-  },
-
-  cadastroButtonContent: {
-    flex: 1,
-  },
-
-  cadastroButtonTitle: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-    marginBottom: 3,
-  },
-
-  cadastroButtonText: {
-    color: '#9CA3AF',
-    fontSize: 12,
-    lineHeight: 17,
-  },
-
-  cadastroButtonArrow: {
-    color: '#A78BFA',
-    fontSize: 30,
-    fontWeight: '300',
-    marginLeft: 8,
-  },
-
-  sectionTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '800',
-    marginBottom: 14,
-  },
-
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12, 
-    marginBottom: 28,
-  },
-
-  statCard: {
-    flex: 1,
-    minWidth: 130, 
-    backgroundColor: '#151A27',
-    borderRadius: 18,
-    padding: 17,
-    borderWidth: 1,
-    borderColor: '#202638',
-  },
-
-  statIcon: {
-    fontSize: 20,
-    marginBottom: 10,
-  },
-
-  statNumber: {
-    color: '#FFFFFF',
-    fontSize: 26,
-    fontWeight: '800',
-  },
-
-  statLabel: {
-    color: '#9CA3AF',
-    fontSize: 13,
-    marginTop: 3,
-  },
-
-  progressCard: {
-    backgroundColor: '#151A27',
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#202638',
-  },
-
-  progressHeader: {
     marginBottom: 20,
   },
-
-  progressTitle: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-  },
-
-  progressSubtitle: {
-    color: '#6B7280',
-    fontSize: 12,
-    marginTop: 4,
-  },
-
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-
-  statusLabelContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
-  },
-
-  notPlayedDot: {
-    backgroundColor: '#6B7280',
-  },
-
-  playingDot: {
-    backgroundColor: '#A855F7',
-  },
-
-  completedDot: {
-    backgroundColor: '#22C55E',
-  },
-
-  platinumDot: {
-    backgroundColor: '#F59E0B',
-  },
-
-  statusLabel: {
-    color: '#D1D5DB',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  statusPercentage: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-
-  progressBar: {
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: '#252B3A',
-    overflow: 'hidden',
-    marginBottom: 18,
-  },
-
-  progressFill: {
-    height: '100%',
-    borderRadius: 5,
-  },
-
-  notPlayedFill: {
-    backgroundColor: '#6B7280',
-  },
-
-  playingFill: {
-    backgroundColor: '#A855F7',
-  },
-
-  completedFill: {
-    backgroundColor: '#22C55E',
-  },
-
-  platinumFill: {
-    backgroundColor: '#F59E0B',
-  },
-
-  progressDivider: {
-    height: 1,
-    backgroundColor: '#252B3A',
-    marginVertical: 4,
-  },
-
-  upcomingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 14,
-  },
-
-  upcomingTitle: {
-    color: '#9CA3AF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  upcomingDescription: {
-    color: '#6B7280',
-    fontSize: 11,
-    marginTop: 3,
-  },
-
-  upcomingCount: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '800',
-  },
-
-  progressText: {
-    color: '#6B7280',
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 10,
-  },
-
-  summaryCard: {
-    backgroundColor: '#151A27',
-    borderRadius: 18,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#202638',
-    marginTop: 20,
-  },
-
-  summaryTitle: {
-    color: '#A78BFA',
+  logoutButtonText: {
+    color: '#EF4444',
     fontSize: 16,
     fontWeight: '800',
-    marginBottom: 7,
-  },
-
-  summaryText: {
-    color: '#9CA3AF',
-    fontSize: 13,
-    lineHeight: 20,
   },
 });
