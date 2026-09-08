@@ -9,6 +9,7 @@ import {
 
 import { router } from 'expo-router';
 
+import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import {
   GameStatus,
@@ -18,24 +19,20 @@ import {
 export default function PerfilScreen() {
   const { favorites } = useFavorites();
   const { statuses } = useGameStatus();
+  const { userProfile, logout } = useAuth(); // Puxando o perfil da nuvem e a função de sair
 
   /*
    * ==========================================
    * LÓGICA DE DADOS DINÂMICOS (API)
    * ==========================================
-   * Agora a biblioteca do usuário é calculada juntando 
-   * tudo o que ele favoritou e tudo que ele marcou status.
    */
   const trackedGamesWithStatus = useMemo(() => {
-    // Usamos um Map para garantir que não vamos contar o mesmo jogo duas vezes
     const gameMap = new Map<string, { status: GameStatus }>();
 
-    // 1. Adicionamos todos os jogos que têm algum status salvo
     Object.entries(statuses).forEach(([id, data]) => {
       gameMap.set(id, { status: data.status });
     });
 
-    // 2. Adicionamos os favoritos que por acaso não têm status alterado (padrão: Não jogado)
     favorites.forEach((game) => {
       if (!gameMap.has(game.id)) {
         gameMap.set(game.id, { status: 'Não jogado' });
@@ -45,34 +42,16 @@ export default function PerfilScreen() {
     return Array.from(gameMap.values());
   }, [favorites, statuses]);
 
-  /*
-   * Jogos aguardando lançamento não entram
-   * nas estatísticas de progresso.
-   */
   const availableGames = useMemo(() => {
     return trackedGamesWithStatus.filter(
       (game) => game.status !== 'Aguardando Lançamento'
     );
   }, [trackedGamesWithStatus]);
 
-  /*
-   * Quantidade total de jogos que o usuário interagiu
-   */
   const totalGames = trackedGamesWithStatus.length;
-
-  /*
-   * Quantidade de jogos contabilizados no progresso.
-   */
   const availableGamesCount = availableGames.length;
-
-  /*
-   * Favoritos.
-   */
   const favoriteCount = favorites.length;
 
-  /*
-   * Contadores baseados na lista real do usuário
-   */
   const playingCount = useMemo(() => {
     return availableGames.filter((game) => game.status === 'Jogando').length;
   }, [availableGames]);
@@ -95,14 +74,10 @@ export default function PerfilScreen() {
     ).length;
   }, [trackedGamesWithStatus]);
 
-  /*
-   * Calcula o percentual de determinado status.
-   */
   const getPercentage = (count: number) => {
     if (availableGamesCount === 0) {
       return 0;
     }
-
     return Math.round((count / availableGamesCount) * 100);
   };
 
@@ -111,13 +86,13 @@ export default function PerfilScreen() {
   const platinumPercentage = getPercentage(platinumCount);
   const notPlayedPercentage = getPercentage(notPlayedCount);
 
-  /*
-   * ==========================================
-   * NAVEGAÇÃO PARA CADASTRO
-   * ==========================================
-   */
-  const handleCriarConta = () => {
-    router.navigate('/cadastro');
+  const handleIrParaLogin = () => {
+    router.navigate('/login');
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/login');
   };
 
   return (
@@ -140,12 +115,16 @@ export default function PerfilScreen() {
         </View>
       </View>
 
-      {/* PERFIL DO USUÁRIO */}
+      {/* PERFIL DO USUÁRIO (Dados Reais da Nuvem) */}
       <View style={styles.profileCard}>
         <View style={styles.profileHeader}>
           <View>
-            <Text style={styles.username}>@teuzMat</Text>
-            <Text style={styles.realName}>Mateus Cantanhêde</Text>
+            <Text style={styles.username}>
+              {userProfile?.username ? `@${userProfile.username}` : '@gamervault0607'}
+            </Text>
+            <Text style={styles.realName}>
+              {userProfile?.nome || 'Carregando...'}
+            </Text>
           </View>
           <View style={styles.memberBadge}>
             <Text style={styles.memberBadgeText}>GAMER</Text>
@@ -157,7 +136,11 @@ export default function PerfilScreen() {
         <View style={styles.profileDetails}>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Membro desde</Text>
-            <Text style={styles.detailValue}>agosto de 2026</Text>
+            <Text style={styles.detailValue}>
+              {userProfile?.createdAt 
+                ? new Date(userProfile.createdAt).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) 
+                : 'agosto de 2026'}
+            </Text>
           </View>
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Plataformas</Text>
@@ -166,26 +149,50 @@ export default function PerfilScreen() {
         </View>
       </View>
 
-      {/* CADASTRO */}
+      {/* BOTÃO DE LOGIN / TROCAR DE CONTA */}
       <Pressable
         style={({ pressed }) => [
           styles.cadastroButton,
           pressed && styles.cadastroButtonPressed,
         ]}
-        onPress={handleCriarConta}
+        onPress={handleIrParaLogin}
         android_ripple={{ color: '#2D1B4E' }}
       >
-        <Text style={styles.cadastroButtonIcon}>👤</Text>
+        <View style={styles.cadastroButtonIcon}>
+          <Text style={{ fontSize: 20 }}>👤</Text>
+        </View>
         <View style={styles.cadastroButtonContent}>
-          <Text style={styles.cadastroButtonTitle}>Criar uma conta</Text>
+          <Text style={styles.cadastroButtonTitle}>Acessar outra conta</Text>
           <Text style={styles.cadastroButtonText}>
-            Cadastre um novo usuário no GameVault.
+            Entrar com outro e-mail no GameVault.
           </Text>
         </View>
         <Text style={styles.cadastroButtonArrow}>›</Text>
       </Pressable>
 
-      {/* ESTATÍSTICAS (O Grid Responsivo está mantido aqui!) */}
+      {/* BOTÃO DE SAIR (LOGOUT) */}
+      <Pressable
+        style={({ pressed }) => [
+          styles.cadastroButton,
+          { borderColor: '#EF4444', marginBottom: 28 },
+          pressed && styles.cadastroButtonPressed,
+        ]}
+        onPress={handleLogout}
+        android_ripple={{ color: '#451A1A' }}
+      >
+        <View style={[styles.cadastroButtonIcon, { backgroundColor: '#2F1515' }]}>
+          <Text style={{ fontSize: 20 }}>🚪</Text>
+        </View>
+        <View style={styles.cadastroButtonContent}>
+          <Text style={styles.cadastroButtonTitle}>Sair da conta</Text>
+          <Text style={styles.cadastroButtonText}>
+            Encerrar sessão atual no GameVault.
+          </Text>
+        </View>
+        <Text style={[styles.cadastroButtonArrow, { color: '#EF4444' }]}>›</Text>
+      </Pressable>
+
+      {/* ESTATÍSTICAS */}
       <Text style={styles.sectionTitle}>Estatísticas</Text>
 
       <View style={styles.statsGrid}>
@@ -334,7 +341,7 @@ const styles = StyleSheet.create({
 
   content: {
     width: '100%',
-    maxWidth: 900,       // Mantido para responsividade
+    maxWidth: 900,
     alignSelf: 'center', 
     padding: 20,
     paddingTop: 60,
@@ -457,7 +464,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#7C3AED',
     padding: 16,
-    marginBottom: 28,
+    marginBottom: 14,
   },
 
   cadastroButtonPressed: {
@@ -467,6 +474,8 @@ const styles = StyleSheet.create({
   cadastroButtonIcon: {
     width: 44,
     height: 44,
+    alignItems: 'center',       // <--- Adicionado
+    justifyContent: 'center',   // <--- Adicionado
     borderRadius: 13,
     backgroundColor: '#21183A',
     textAlign: 'center',

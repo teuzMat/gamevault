@@ -2,13 +2,40 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 const technologies = [
   {
+    name: 'RAWG Video Games Database API',
+    category: 'API REST Externa',
+    description:
+      'Fornece acesso dinâmico a um catálogo global com milhares de jogos, gêneros, imagens e detalhes em tempo real.',
+    usage:
+      'Utilizada para buscar e exibir os dados dos jogos dinamicamente na tela inicial, listagens e páginas de detalhes.',
+    icon: '🌐',
+  },
+  {
+    name: 'Firebase (Auth & Firestore)',
+    category: 'Backend & Nuvem',
+    description:
+      'Plataforma do Google que oferece autenticação segura de usuários e um banco de dados NoSQL em nuvem.',
+    usage:
+      'Utilizada para gerenciar o login, cadastro de contas e sincronizar os perfis dos jogadores na nuvem.',
+    icon: '☁️',
+  },
+  {
     name: '@react-native-async-storage/async-storage',
     category: 'Persistência local',
     description:
-      'Permite armazenar informações localmente no dispositivo.',
+      'Permite armazenar informações localmente no dispositivo de forma assíncrona e otimizada.',
     usage:
-      'Utilizado para salvar os jogos favoritos e manter essas informações mesmo após fechar ou reiniciar o aplicativo.',
+      'Utilizado para salvar os jogos favoritos e status de progresso, mantendo os dados offline disponíveis no aparelho.',
     icon: '💾',
+  },
+  {
+    name: 'expo-router',
+    category: 'Navegação',
+    description:
+      'Sistema de roteamento baseado em arquivos para React Native e Expo, inspirado no padrão web.',
+    usage:
+      'Utilizado para gerenciar a navegação global por abas (Tabs), pilhas (Stack) e telas modais protegidas por autenticação.',
+    icon: '🧭',
   },
   {
     name: 'expo-linear-gradient',
@@ -23,7 +50,7 @@ const technologies = [
     name: 'expo-haptics',
     category: 'Feedback tátil',
     description:
-      'Fornece recursos de feedback háptico para interações do usuário.',
+      'Fornece recursos de feedback háptico para interações físicas do usuário com o aparelho.',
     usage:
       'Utilizado no componente HapticTab para fornecer resposta tátil durante a interação com as abas de navegação.',
     icon: '📳',
@@ -32,18 +59,18 @@ const technologies = [
     name: 'expo-image',
     category: 'Imagens',
     description:
-      'Oferece um componente otimizado para exibição de imagens no aplicativo.',
+      'Oferece um componente otimizado de carregamento e exibição de imagens em alta performance.',
     usage:
-      'Utilizado para carregar e exibir as capas dos jogos na Biblioteca e nos jogos em destaque da tela Início.',
+      'Utilizado para carregar e exibir as capas dos jogos na Biblioteca e nos destaques da tela Início.',
     icon: '🖼️',
   },
   {
     name: 'expo-blur',
     category: 'Efeito de desfoque',
     description:
-      'Permite aplicar efeitos de desfoque sobre elementos da interface.',
+      'Permite aplicar efeitos modernos de desfoque (glassmorphism) sobre elementos da interface.',
     usage:
-      'Utilizado na Biblioteca para criar o efeito de desfoque sobre a parte inferior das capas, melhorando a apresentação das informações.',
+      'Utilizado na Biblioteca para criar o efeito de desfoque sobre a parte inferior das capas, melhorando a leitura.',
     icon: '✨',
   },
 ];
@@ -66,7 +93,7 @@ export default function TecnologiasScreen() {
         </Text>
 
         <Text style={styles.subtitle}>
-          Bibliotecas e ferramentas utilizadas no desenvolvimento
+          APIs, bibliotecas e ferramentas utilizadas no desenvolvimento
           da aplicação.
         </Text>
       </View>
@@ -81,23 +108,22 @@ export default function TecnologiasScreen() {
 
         <View style={styles.introContent}>
           <Text style={styles.introTitle}>
-            Pacotes utilizados
+            Ecossistema Completo
           </Text>
 
           <Text style={styles.introText}>
-            O GameVault utiliza bibliotecas externas para adicionar
-            recursos de persistência, imagens, efeitos visuais e
-            interação à aplicação.
+            O GameVault integra serviços em nuvem, consumo de APIs REST externas,
+            persistência local e roteamento avançado para entregar uma experiência robusta.
           </Text>
         </View>
       </View>
 
       {/* Lista de tecnologias */}
       <Text style={styles.sectionTitle}>
-        Bibliotecas
+        Bibliotecas e Serviços
       </Text>
 
-      {/* NOVIDADE: Container de Grid para as Tecnologias */}
+      {/* Container de Grid para as Tecnologias */}
       <View style={styles.techGrid}>
         {technologies.map((technology, index) => (
           <View
@@ -113,7 +139,7 @@ export default function TecnologiasScreen() {
 
               <View style={styles.techTitleContainer}>
                 <Text style={styles.techNumber}>
-                  PACOTE {String(index + 1).padStart(2, '0')}
+                  ITEM {String(index + 1).padStart(2, '0')}
                 </Text>
 
                 <Text style={styles.techName}>
@@ -156,13 +182,12 @@ export default function TecnologiasScreen() {
         </Text>
 
         <Text style={styles.summaryTitle}>
-          React Native + Expo
+          Stack Moderna (v1.4.1)
         </Text>
 
         <Text style={styles.summaryText}>
-          As bibliotecas apresentadas foram integradas ao GameVault
-          para demonstrar na prática o gerenciamento e a utilização
-          de dependências em uma aplicação React Native.
+          A união de React Native, Expo, Firebase e RAWG API consolida o GameVault
+          como uma aplicação moderna, segura, responsiva e pronta para produção.
         </Text>
       </View>
 
@@ -188,7 +213,7 @@ const styles = StyleSheet.create({
 
   content: {
     width: '100%',
-    maxWidth: 900,       // Mantém o alinhamento central em telas grandes
+    maxWidth: 900,      // Mantém o alinhamento central em telas grandes
     alignSelf: 'center', // Centraliza o conteúdo no Desktop
     padding: 20,
     paddingTop: 60,
@@ -268,7 +293,6 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
 
-  // NOVIDADE: O Grid Container para que os cards dividam a tela
   techGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -370,7 +394,7 @@ const styles = StyleSheet.create({
     borderColor: '#30264D',
     padding: 22,
     alignItems: 'center',
-    marginTop: 28, // Ajustado porque tiramos a margem de baixo dos techCards
+    marginTop: 28,
   },
 
   summaryIcon: {

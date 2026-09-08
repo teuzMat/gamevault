@@ -12,6 +12,11 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+// Importações do Firebase
+import { auth, db } from '@/services/firebase';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+
 import CadastroButton from '@/components/cadastro/CadastroButton';
 import CadastroHeader from '@/components/cadastro/CadastroHeader';
 import CadastroInput from '@/components/cadastro/CadastroInput';
@@ -19,17 +24,21 @@ import CadastroSection from '@/components/cadastro/CadastroSection';
 
 export default function CadastroScreen() {
   const insets = useSafeAreaInsets();
+  
   const [nome, setNome] = useState('');
+  const [username, setUsername] = useState(''); // Novo estado para o @username
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [cpf, setCpf] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
+  
+  const [isLoading, setIsLoading] = useState(false);
 
   /*
    * ==========================================
-   * MÁSCARA DE TELEFONE
+   * MÁSCARAS
    * ==========================================
    */
   const formatTelefone = (value: string) => {
@@ -43,11 +52,6 @@ export default function CadastroScreen() {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
   };
 
-  /*
-   * ==========================================
-   * MÁSCARA DE CPF
-   * ==========================================
-   */
   const formatCpf = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 11);
 
@@ -58,11 +62,6 @@ export default function CadastroScreen() {
     return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
   };
 
-  /*
-   * ==========================================
-   * MÁSCARA DE DATA DE NASCIMENTO
-   * ==========================================
-   */
   const formatDataNascimento = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 8);
 
@@ -121,16 +120,21 @@ export default function CadastroScreen() {
 
   /*
    * ==========================================
-   * CADASTRO
+   * INTEGRAÇÃO COM FIREBASE
    * ==========================================
    */
-  const handleCadastro = () => {
-    if (!nome.trim() || !email.trim() || !telefone.trim() || !dataNascimento.trim() || !cpf.trim() || !senha || !confirmarSenha) {
+  const handleCadastro = async () => {
+    // Validações locais
+    if (!nome.trim() || !username.trim() || !email.trim() || !telefone.trim() || !dataNascimento.trim() || !cpf.trim() || !senha || !confirmarSenha) {
       Alert.alert('Campos obrigatórios', 'Preencha todos os campos para continuar.');
       return;
     }
     if (nome.trim().length < 3) {
       Alert.alert('Nome inválido', 'Digite seu nome completo.');
+      return;
+    }
+    if (username.trim().length < 3) {
+      Alert.alert('Apelido inválido', 'O nome de usuário deve ter pelo menos 3 caracteres.');
       return;
     }
     const emailLimpo = email.trim();
@@ -159,11 +163,55 @@ export default function CadastroScreen() {
       return;
     }
 
-    Alert.alert(
-      'Cadastro realizado!',
-      `Bem-vindo ao GameVault, ${nome.trim()}!`,
-      [{ text: 'OK', onPress: () => router.back() }]
-    );
+    setIsLoading(true);
+
+    try {
+      // 1. Cria a conta de autenticação (Gera o UID)
+      const userCredential = await createUserWithEmailAndPassword(auth, emailLimpo, senha);
+      const user = userCredential.user;
+
+      // 2. Salva os dados complementares no Firestore, incluindo o username
+      await setDoc(doc(db, 'users', user.uid), {
+        nome: nome.trim(),
+        username: username.trim().toLowerCase(),
+        email: emailLimpo,
+        telefone,
+        dataNascimento,
+        cpf,
+        createdAt: new Date().toISOString(),
+      });
+
+      setIsLoading(false);
+
+      Alert.alert(
+        'Cadastro realizado!',
+        `Sua conta foi criada com sucesso, ${nome.trim()}!`,
+        [
+          { 
+            text: 'Entrar no GameVault', 
+            onPress: () => {
+              router.replace('/(tabs)'); 
+            } 
+          }
+        ]
+      );
+    } catch (error: any) {
+      console.error('Erro no cadastro do Firebase:', error);
+      
+      setIsLoading(false);
+      
+      let errorMessage = 'Ocorreu um erro ao criar a conta. Tente novamente mais tarde.';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'Este e-mail já está cadastrado em outra conta.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'A senha informada é muito fraca.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Falha na conexão com a internet. Verifique sua rede.';
+      }
+
+      Alert.alert('Erro no cadastro', errorMessage);
+    }
   };
 
   return (
@@ -199,6 +247,15 @@ export default function CadastroScreen() {
             value={nome}
             onChangeText={setNome}
             autoCapitalize="words"
+            autoCorrect={false}
+          />
+
+          <CadastroInput
+            label="Nome de usuário (Apelido)"
+            placeholder="ex: teuzmat"
+            value={username}
+            onChangeText={(text) => setUsername(text.toLowerCase().replace(/[^a-z0-9_]/g, ''))}
+            autoCapitalize="none"
             autoCorrect={false}
           />
 
@@ -262,8 +319,8 @@ export default function CadastroScreen() {
           />
 
           <CadastroButton
-            title="Cadastrar"
-            onPress={handleCadastro}
+            title={isLoading ? 'Criando conta...' : 'Cadastrar'}
+            onPress={isLoading ? () => {} : handleCadastro}
           />
         </CadastroSection>
 
