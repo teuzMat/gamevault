@@ -20,4 +20,4 @@ const app = initializeApp(firebaseConfig);
 
 // Exporta as instâncias de Auth e Firestore para usarmos nas telas
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = getFirestore(app);    

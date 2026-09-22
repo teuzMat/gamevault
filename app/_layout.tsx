@@ -34,40 +34,21 @@ export default function RootLayout() {
                   : DefaultTheme
               }
             >
-              <Stack>
-                <Stack.Screen
-                  name="(tabs)"
-                  options={{
-                    headerShown: false,
-                  }}
-                />
+              {/* O screenOptions aqui remove o cabeçalho de todas as rotas de uma só vez */}
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" />
 
-                {/* 3. Registramos a nova tela de Login */}
-                <Stack.Screen
-                  name="login"
-                  options={{
-                    headerShown: false,
-                  }}
-                />
-
-                <Stack.Screen
-                  name="cadastro"
-                  options={{
-                    headerShown: false,
-                  }}
-                />
-
-                <Stack.Screen
-                  name="jogo/[id]"
-                  options={{ headerShown: false }}
-                />
+                {/* 3. Ecrã inicial atualizado para "index" em vez de "login" */}
+                <Stack.Screen name="index" />
+                <Stack.Screen name="cadastro" />
+                <Stack.Screen name="jogo/[id]" />
 
                 <Stack.Screen
                   name="modal"
                   options={{
                     presentation: 'modal',
                     title: 'Modal',
-                    headerShown: false
+                    // Mantemos apenas as opções exclusivas do modal
                   }}
                 />
               </Stack>

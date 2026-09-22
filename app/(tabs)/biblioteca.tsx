@@ -1,17 +1,17 @@
-import { BlurView } from 'expo-blur';
-import { Image } from 'expo-image';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Link, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
   Pressable,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
 
+import GameCard from '@/components/GameCard'; // EVIDÊNCIA 4: Importação do componente reutilizável[cite: 3]
 import { useGameStatus } from '@/contexts/GamesContext';
 
 type SavedGame = {
@@ -41,6 +41,10 @@ export default function BibliotecaScreen() {
 
   const [search, setSearch] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('Todos');
+  
+  // ==========================================
+  // EVIDÊNCIA 5: State controlando a interface[cite: 3]
+  // ==========================================
   const [gridView, setGridView] = useState(false);
 
   useEffect(() => {
@@ -75,6 +79,10 @@ export default function BibliotecaScreen() {
     });
   }, [myLibraryGames, search, selectedFilter, statuses]);
 
+  // ==========================================
+  // EVIDÊNCIA 8: Navegação programática utilizando useRouter e router.push[cite: 3]
+  // EVIDÊNCIA 9: Envio do identificador (gameId) do item[cite: 3]
+  // ==========================================
   const openGame = (gameId: string) => {
     router.push({
       pathname: '/jogo/[id]',
@@ -94,10 +102,6 @@ export default function BibliotecaScreen() {
     const playedPlatforms = storedData?.selectedPlatforms;
     const personalRating = storedData?.personalRating;
 
-    const obtained = (storedData as any)?.achievementsObtained || 0;
-    const total = (storedData as any)?.maxAchievements || item.achievements_count || 0;
-    const percentage = total > 0 ? Math.round((obtained / total) * 100) : 0;
-
     let platformNames = 'Plataforma não informada';
     if (playedPlatforms && playedPlatforms.length > 0) {
       platformNames = playedPlatforms.join(', ');
@@ -105,57 +109,33 @@ export default function BibliotecaScreen() {
 
     let ratingText = personalRating ? `Sua nota: ${personalRating}/5` : 'Sem nota';
 
-    if (gridView) {
-      return (
-        <Pressable style={styles.gridCard} onPress={() => openGame(stringId)}>
-          <View style={styles.gridCoverContainer}>
-            <Image source={{ uri: item.background_image }} style={styles.gridCover} contentFit="cover" transition={300} />
-            <BlurView intensity={65} tint="dark" style={styles.gridBlurInfo}>
-              <Text style={styles.gridStatus} numberOfLines={1}>{currentStatus}</Text>
-            </BlurView>
-          </View>
-          <View style={styles.gridInfo}>
-            <Text style={styles.gridTitle} numberOfLines={2}>{item.name}</Text>
-            <View style={styles.gridInfoBottom}>
-              <Text style={styles.gridDetails} numberOfLines={1}>{platformNames}</Text>
-              {total > 0 && <Text style={styles.gridPercentage}>{percentage}%</Text>}
-            </View>
-          </View>
-        </Pressable>
-      );
-    }
-
+    // ==========================================
+    // EVIDÊNCIA 4: Utilizando o componente reutilizável e passando dados através de Props[cite: 3]
+    // ==========================================
     return (
-      <Pressable style={styles.gameCard} onPress={() => openGame(stringId)}>
-        <View style={styles.coverContainer}>
-          <Image source={{ uri: item.background_image }} style={styles.cover} contentFit="cover" transition={300} />
-          <BlurView intensity={65} tint="dark" style={styles.blurInfo}>
-            <Text style={styles.coverTitle} numberOfLines={1}>{item.name}</Text>
-          </BlurView>
-        </View>
-
-        <View style={styles.gameInfo}>
-          <View style={styles.gameTitleRow}>
-            <Text style={styles.gameTitle} numberOfLines={2}>{item.name}</Text>
-          </View>
-          <Text style={styles.details}>{ratingText} • {platformNames}</Text>
-          <View style={styles.statusContainer}>
-            <Text style={styles.status}>{currentStatus}</Text>
-          </View>
-        </View>
-
-        {total > 0 && (
-          <View style={styles.achievementBadge}>
-            <Text style={styles.achievementText}>{obtained}/{total}</Text>
-            <Text style={styles.achievementPercent}>{percentage}%</Text>
-          </View>
-        )}
-      </Pressable>
+      <GameCard
+        id={stringId}
+        name={item.name}
+        backgroundImage={item.background_image}
+        status={currentStatus}
+        platformNames={platformNames}
+        ratingText={ratingText}
+        gridView={gridView}
+        onPress={() => openGame(stringId)}
+      />
     );
   };
 
   return (
     <View style={styles.container}>
+      {/* 
+        ==========================================
+        - O Link (no cabeçalho) realiza navegação declarativa.
+        - O router.push (no componente GameCard) executa a navegação programática via código.
+        ==========================================
+      */}
+
+      {/* EVIDÊNCIA 2 e 3: Utilizando FlatList, data, renderItem e keyExtractor[cite: 3] */}
       <FlatList
         key={`${gridView ? 'grid' : 'list'}-${dynamicColumns}`}
         data={filteredGames}
@@ -169,15 +149,26 @@ export default function BibliotecaScreen() {
             <View style={styles.header}>
               <View style={styles.headerText}>
                 <Text style={styles.title}>Minha Biblioteca</Text>
-                <Text style={styles.subtitle}>Seus jogos salvos e catalogados.</Text>
+                
+                {/* EVIDÊNCIA 7: Navegando utilizando o componente Link */}
+                <Link href="/explorar" asChild>
+                  <Text style={styles.subtitleLink}>Ir para Explorar (via Link)</Text>
+                </Link>
               </View>
               <View style={styles.headerButtons}>
                 <Pressable onPress={handleExplore} style={styles.exploreButton}>
                   <Text style={styles.exploreButtonText}>+ Explorar</Text>
                 </Pressable>
-                <Pressable onPress={() => setGridView((current) => !current)} style={styles.viewButton} hitSlop={8}>
-                  <Text style={styles.viewButtonIcon}>{gridView ? '☰' : '▦'}</Text>
-                </Pressable>
+                
+                {/* EVIDÊNCIA 5: Interação (Switch) que altera o State (gridView) e modifica a interface */}
+                <View style={{ alignItems: 'center', marginLeft: 10 }}>
+                  <Switch 
+                    value={gridView} 
+                    onValueChange={setGridView} 
+                    trackColor={{ true: '#7C3AED' }} 
+                  />
+                  <Text style={{ color: '#9CA3AF', fontSize: 10, marginTop: 2 }}>Grade</Text>
+                </View>
               </View>
             </View>
 
@@ -227,12 +218,10 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 },
   headerText: { flex: 1, paddingRight: 10 },
   title: { color: '#FFFFFF', fontSize: 30, fontWeight: '800', marginBottom: 6 },
-  subtitle: { color: '#9CA3AF', fontSize: 15 },
-  headerButtons: { flexDirection: 'row', gap: 10 },
+  subtitleLink: { color: '#A78BFA', fontSize: 14, textDecorationLine: 'underline' },
+  headerButtons: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   exploreButton: { height: 44, paddingHorizontal: 14, backgroundColor: '#7C3AED', borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   exploreButtonText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
-  viewButton: { width: 44, height: 44, borderRadius: 13, backgroundColor: '#151A27', borderWidth: 1, borderColor: '#252B3A', alignItems: 'center', justifyContent: 'center' },
-  viewButtonIcon: { color: '#A78BFA', fontSize: 23, fontWeight: '700' },
   searchInput: { backgroundColor: '#151A27', borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, color: '#FFFFFF', fontSize: 15, marginBottom: 14, borderWidth: 1, borderColor: '#252B3A' },
   filters: { gap: 10, paddingBottom: 18 },
   filterButton: { paddingHorizontal: 16, paddingVertical: 9, borderRadius: 20, backgroundColor: '#151A27' },
@@ -241,31 +230,7 @@ const styles = StyleSheet.create({
   filterTextSelected: { color: '#FFFFFF' },
   resultsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
   resultText: { color: '#6B7280', fontSize: 13 },
-  gameCard: { flexDirection: 'row', backgroundColor: '#151A27', borderRadius: 18, overflow: 'hidden', marginBottom: 14, borderWidth: 1, borderColor: '#202638', minHeight: 145 },
-  coverContainer: { width: 105, height: 145, position: 'relative', backgroundColor: '#1B2130' },
-  cover: { width: '100%', height: '100%', backgroundColor: '#1B2130' },
-  blurInfo: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 8, paddingVertical: 7, overflow: 'hidden' },
-  coverTitle: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
-  gameInfo: { flex: 1, padding: 14, justifyContent: 'center' },
-  gameTitleRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  gameTitle: { flex: 1, color: '#FFFFFF', fontSize: 16, fontWeight: '700', lineHeight: 20 },
-  details: { color: '#9CA3AF', fontSize: 12, lineHeight: 17, marginTop: 6 },
-  statusContainer: { alignSelf: 'flex-start', backgroundColor: '#21183A', borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5, marginTop: 10 },
-  status: { color: '#A855F7', fontSize: 11, fontWeight: '600' },
-  achievementBadge: { justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16, paddingLeft: 10 },
-  achievementText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
-  achievementPercent: { color: '#A78BFA', fontSize: 12, fontWeight: '700', marginTop: 2 },
   gridRow: { gap: 14 },
-  gridCard: { flex: 1, backgroundColor: '#151A27', borderRadius: 16, overflow: 'hidden', marginBottom: 14, borderWidth: 1, borderColor: '#202638' },
-  gridCoverContainer: { width: '100%', aspectRatio: 2 / 3, position: 'relative', backgroundColor: '#1B2130' },
-  gridCover: { width: '100%', height: '100%', backgroundColor: '#1B2130' },
-  gridBlurInfo: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 9, paddingVertical: 7, overflow: 'hidden' },
-  gridStatus: { color: '#FFFFFF', fontSize: 10, fontWeight: '700' },
-  gridInfo: { padding: 11 },
-  gridTitle: { color: '#FFFFFF', fontSize: 14, lineHeight: 18, fontWeight: '700', minHeight: 36 },
-  gridInfoBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 5 },
-  gridDetails: { flex: 1, color: '#9CA3AF', fontSize: 11, lineHeight: 15, paddingRight: 5 },
-  gridPercentage: { color: '#A78BFA', fontSize: 11, fontWeight: '700' },
   emptyContainer: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 20 },
   emptyIcon: { fontSize: 54, marginBottom: 16 },
   emptyTitle: { color: '#FFFFFF', fontSize: 18, fontWeight: '800', marginBottom: 8, textAlign: 'center' },

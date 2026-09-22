@@ -1,4 +1,4 @@
-import * as Haptics from 'expo-haptics'; // <-- IMPORTAÇÃO DO HAPTICS AQUI
+import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -26,6 +26,9 @@ const statusOptions: { value: GameStatus; label: string; icon: string }[] = [
 ];
 
 export default function JogoScreen() {
+  // ==========================================
+  // EVIDÊNCIA 10: Recuperar o parâmetro utilizando useLocalSearchParams[cite: 3]
+  // ==========================================
   const params = useLocalSearchParams<{ id: string | string[] }>();
   const gameId = Array.isArray(params.id) ? params.id[0] : params.id;
 
@@ -80,11 +83,10 @@ export default function JogoScreen() {
   };
 
   const handleStatusChange = async (status: GameStatus) => {
-    // VIBRAÇÃO DE STATUS
     if (status === 'Platinado') {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); // Vibração de conquista!
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); // Vibração suave de clique
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
     let platformsToSave = [...selectedPlatforms];
@@ -97,7 +99,7 @@ export default function JogoScreen() {
   };
 
   const handlePlatformChange = (platformName: string) => {
-    Haptics.selectionAsync(); // Vibração super sutil estilo "interruptor"
+    Haptics.selectionAsync();
 
     let newPlatforms = selectedPlatforms.includes(platformName)
       ? selectedPlatforms.filter(p => p !== platformName)
@@ -107,7 +109,6 @@ export default function JogoScreen() {
   };
 
   const handleRating = (rating: number) => {
-    // VIBRAÇÃO DE NOTA
     if (rating === 5) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } else {
@@ -129,7 +130,7 @@ export default function JogoScreen() {
       setAchievementsObtained(gameId as string, obtained);
       
       if (displayTotal > 0 && obtained >= displayTotal && currentStatus !== 'Platinado') {
-        handleStatusChange('Platinado'); // Já chama a vibração de sucesso dentro da função!
+        handleStatusChange('Platinado');
       }
     } else if (numericValue === '') {
       setAchievementsObtained(gameId as string, 0);
@@ -159,6 +160,9 @@ export default function JogoScreen() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        {/* ========================================== */}
+        {/* EVIDÊNCIA 12: Criar navegação de retorno utilizando router.back()[cite: 3] */}
+        {/* ========================================== */}
         <Pressable onPress={() => router.back()} style={styles.backButtonTop} hitSlop={8}>
           <Text style={styles.backButtonTopText}>‹</Text>
           <Text style={styles.backButtonLabel}>Voltar</Text>
@@ -302,7 +306,6 @@ export default function JogoScreen() {
   );
 }
 
-// Os estilos (styles) permanecem idênticos ao código anterior
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0B0F19' },
   content: { width: '100%', maxWidth: 900, alignSelf: 'center', padding: 20, paddingTop: 50, paddingBottom: 40 },

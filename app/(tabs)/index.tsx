@@ -300,6 +300,14 @@ export default function HomeScreen() {
         <Text style={styles.footerSubtext}>
           Sua biblioteca gamer em um só lugar.
         </Text>
+
+        {/* NOVO: Link para a tela de Cadastro */}
+        <View style={styles.registerRow}>
+          <Text style={styles.registerText}>Não tem uma conta? </Text>
+          <Pressable hitSlop={10} onPress={() => router.push('/cadastro')}>
+            <Text style={styles.registerLink}>Cadastre-se</Text>
+          </Pressable>
+        </View>
       </View>
     </ScrollView>
   );
@@ -620,5 +628,20 @@ const styles = StyleSheet.create({
     color: '#4B5563',
     fontSize: 11,
     marginTop: 4,
+  },
+
+  registerRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  registerText: {
+    color: '#9CA3AF',
+    fontSize: 14,
+  },
+  registerLink: {
+    color: '#A78BFA',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

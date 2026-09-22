@@ -5,8 +5,10 @@ import {
   Button,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from 'react-native';
@@ -25,8 +27,11 @@ import CadastroSection from '@/components/cadastro/CadastroSection';
 export default function CadastroScreen() {
   const insets = useSafeAreaInsets();
   
+  // ==========================================
+  // EVIDÊNCIA 4 e 9: onChangeText e State[cite: 1]
+  // ==========================================
   const [nome, setNome] = useState('');
-  const [username, setUsername] = useState(''); // Novo estado para o @username
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [telefone, setTelefone] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
@@ -34,48 +39,65 @@ export default function CadastroScreen() {
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   
+  // Novos States para o Laboratório 04[cite: 1]
+  const [aceitaTermos, setAceitaTermos] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   /*
    * ==========================================
-   * MÁSCARAS
+   * EVIDÊNCIA 1: Funções de Tratamento de Eventos[cite: 1]
+   * ==========================================
+   */
+  function handleFocus() {
+    console.log('Campo recebeu o foco');
+    setIsFocused(true);
+  }
+
+  function handleBlur() {
+    console.log('Campo perdeu o foco');
+    setIsFocused(false);
+  }
+
+  function handleSubmit() {
+    console.log('Teclado acionou o envio');
+    Alert.alert('Ação do Teclado', 'Você pressionou o botão de envio no teclado virtual!');
+  }
+
+  function handleLongPress() {
+    console.log('Pressão prolongada acionada');
+    Alert.alert('🏆 Conquista Desbloqueada', 'Você encontrou a área secreta do GameVault!');
+  }
+
+  /*
+   * ==========================================
+   * MÁSCARAS E VALIDAÇÕES (Mantidas do original)
    * ==========================================
    */
   const formatTelefone = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 11);
-
     if (digits.length === 0) return '';
     if (digits.length <= 2) return `(${digits}`;
     if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
     if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
-    
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
   };
 
   const formatCpf = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 11);
-
     if (digits.length <= 3) return digits;
     if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
     if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
-    
     return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
   };
 
   const formatDataNascimento = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 8);
-
     if (digits.length <= 2) return digits;
     if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    
     return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
   };
 
-  /*
-   * ==========================================
-   * VALIDAÇÕES
-   * ==========================================
-   */
   const validarTelefone = (value: string) => {
     const telefoneNumerico = value.replace(/\D/g, '');
     return telefoneNumerico.length === 10 || telefoneNumerico.length === 11;
@@ -118,13 +140,13 @@ export default function CadastroScreen() {
     return true;
   };
 
-  /*
-   * ==========================================
-   * INTEGRAÇÃO COM FIREBASE
-   * ==========================================
-   */
   const handleCadastro = async () => {
-    // Validações locais
+    // Nova validação integrada (EVIDÊNCIA 10)[cite: 1]
+    if (!aceitaTermos) {
+      Alert.alert('Aviso', 'Você precisa aceitar os Termos de Uso para criar uma conta.');
+      return;
+    }
+
     if (!nome.trim() || !username.trim() || !email.trim() || !telefone.trim() || !dataNascimento.trim() || !cpf.trim() || !senha || !confirmarSenha) {
       Alert.alert('Campos obrigatórios', 'Preencha todos os campos para continuar.');
       return;
@@ -166,11 +188,9 @@ export default function CadastroScreen() {
     setIsLoading(true);
 
     try {
-      // 1. Cria a conta de autenticação (Gera o UID)
       const userCredential = await createUserWithEmailAndPassword(auth, emailLimpo, senha);
       const user = userCredential.user;
 
-      // 2. Salva os dados complementares no Firestore, incluindo o username
       await setDoc(doc(db, 'users', user.uid), {
         nome: nome.trim(),
         username: username.trim().toLowerCase(),
@@ -197,11 +217,8 @@ export default function CadastroScreen() {
       );
     } catch (error: any) {
       console.error('Erro no cadastro do Firebase:', error);
-      
       setIsLoading(false);
-      
       let errorMessage = 'Ocorreu um erro ao criar a conta. Tente novamente mais tarde.';
-      
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'Este e-mail já está cadastrado em outra conta.';
       } else if (error.code === 'auth/weak-password') {
@@ -209,7 +226,6 @@ export default function CadastroScreen() {
       } else if (error.code === 'auth/network-request-failed') {
         errorMessage = 'Falha na conexão com a internet. Verifique sua rede.';
       }
-
       Alert.alert('Erro no cadastro', errorMessage);
     }
   };
@@ -231,6 +247,10 @@ export default function CadastroScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.backContainer}>
+          {/* 
+            EVIDÊNCIA 2 e 8: Uso de onPress no botão[cite: 1]
+            A função fornecida é router.back e não a sua execução imediata.
+          */}
           <Button
             title="Voltar"
             color="#A78BFA"
@@ -241,6 +261,13 @@ export default function CadastroScreen() {
         <CadastroHeader />
 
         <CadastroSection title="Dados pessoais">
+          {/*
+            EVIDÊNCIA 9: Relacionar Props, Eventos e State[cite: 1]
+            - placeholder: Prop.
+            - onChangeText: Evento que recebe uma função.
+            - value: Recebe o valor armazenado no State.
+            - setNome: Função que altera o State e atualiza a interface.
+          */}
           <CadastroInput
             label="Nome completo"
             placeholder="Digite seu nome completo"
@@ -259,6 +286,7 @@ export default function CadastroScreen() {
             autoCorrect={false}
           />
 
+          {/* EVIDÊNCIA 5 e 6: onFocus, onBlur e onSubmitEditing[cite: 1] */}
           <CadastroInput
             label="E-mail"
             placeholder="Digite seu e-mail"
@@ -267,6 +295,9 @@ export default function CadastroScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onSubmitEditing={handleSubmit}
           />
 
           <CadastroInput
@@ -318,6 +349,28 @@ export default function CadastroScreen() {
             autoCorrect={false}
           />
 
+          {/* EVIDÊNCIA 7: onValueChange e Switch[cite: 1] */}
+          <View style={styles.switchContainer}>
+            <Switch 
+              value={aceitaTermos} 
+              onValueChange={setAceitaTermos} 
+              trackColor={{ false: '#374151', true: '#7C3AED' }}
+              thumbColor={aceitaTermos ? '#FFFFFF' : '#9CA3AF'}
+            />
+            <Text style={styles.switchText}>
+              {aceitaTermos ? 'Termos aceitos ✓' : 'Termos não aceitos'}
+            </Text>
+          </View>
+
+          {/* EVIDÊNCIA 3: Pressable com onPress e onLongPress[cite: 1] */}
+          <Pressable 
+            style={({ pressed }) => [styles.pressableArea, pressed && styles.pressableAreaActive]}
+            onPress={() => console.log('Toque rápido detectado na área secreta')}
+            onLongPress={handleLongPress}
+          >
+            <Text style={styles.pressableText}>Área interativa: Segure pressionado para uma surpresa!</Text>
+          </Pressable>
+
           <CadastroButton
             title={isLoading ? 'Criando conta...' : 'Cadastrar'}
             onPress={isLoading ? () => {} : handleCadastro}
@@ -346,6 +399,40 @@ const styles = StyleSheet.create({
   backContainer: {
     alignSelf: 'flex-start',
     marginBottom: 10,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  switchContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#151A27', 
+    padding: 14, 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    borderColor: '#202638',
+    marginBottom: 16
+  },
+  switchText: { 
+    color: '#D1D5DB', 
+    fontSize: 15, 
+    marginLeft: 12, 
+    fontWeight: '600' 
+  },
+  pressableArea: { 
+    backgroundColor: '#21183A', 
+    padding: 16, 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    borderColor: '#3730A3', 
+    alignItems: 'center',
+    marginBottom: 16
+  },
+  pressableAreaActive: { 
+    backgroundColor: '#3730A3' 
+  },
+  pressableText: { 
+    color: '#A78BFA', 
+    fontWeight: '700' 
   },
   footerText: {
     color: '#6B7280',

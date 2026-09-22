@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -11,24 +12,50 @@ import {
   View,
 } from 'react-native';
 
+// Importações do Firebase para Autenticação
+import { auth } from '@/services/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+
 export default function LoginScreen() {
   const router = useRouter();
-  
+
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [senha, setSenha] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = () => {
-    if (!email || !password) return; // Só para não deixar entrar vazio
+  const handleLogin = async () => {
+    if (!email.trim() || !senha.trim()) {
+      Alert.alert('Campos obrigatórios', 'Por favor, preencha o e-mail e a palavra-passe.');
+      return;
+    }
 
     setIsLoading(true);
-    
-    // Simulação de tempo de resposta da API (Juice!)
-    setTimeout(() => {
+
+    try {
+      // 1. Tenta autenticar o utilizador no Firebase
+      await signInWithEmailAndPassword(auth, email.trim(), senha);
+      
       setIsLoading(false);
-      // O replace destrói a tela de login para o usuário não voltar pra ela sem querer
-      router.replace('/biblioteca'); 
-    }, 1200);
+      
+      // 2. O replace destrói o ecrã de login para o utilizador não conseguir voltar para trás sem fazer logoff
+      router.replace('/(tabs)'); 
+    } catch (error: any) {
+      setIsLoading(false);
+      console.error('Erro no login:', error);
+      
+      let errorMessage = 'Ocorreu um erro ao tentar iniciar sessão. Verifique a sua ligação.';
+      
+      // Tratamento amigável dos erros do Firebase
+      if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+        errorMessage = 'E-mail ou palavra-passe incorretos.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'O formato do e-mail é inválido.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Muitas tentativas falhadas. Tente novamente mais tarde.';
+      }
+      
+      Alert.alert('Erro no Login', errorMessage);
+    }
   };
 
   return (
@@ -44,10 +71,10 @@ export default function LoginScreen() {
             <Text style={styles.logoIcon}>🎮</Text>
           </View>
           <Text style={styles.appName}>GameVault</Text>
-          <Text style={styles.subtitle}>Sua coleção pessoal de jogos.</Text>
+          <Text style={styles.subtitle}>A sua biblioteca gamer num só lugar.</Text>
         </View>
 
-        {/* FORMULÁRIO */}
+        {/* FORMULÁRIO DE LOGIN */}
         <View style={styles.form}>
           <View style={styles.inputGroup}>
             <Text style={styles.label}>E-mail</Text>
@@ -57,41 +84,44 @@ export default function LoginScreen() {
               placeholderTextColor="#6B7280"
               keyboardType="email-address"
               autoCapitalize="none"
+              autoCorrect={false}
               value={email}
               onChangeText={setEmail}
             />
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={styles.label}>Senha</Text>
+            <Text style={styles.label}>Palavra-passe</Text>
             <TextInput
               style={styles.input}
               placeholder="••••••••"
               placeholderTextColor="#6B7280"
               secureTextEntry
-              value={password}
-              onChangeText={setPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={senha}
+              onChangeText={setSenha}
             />
           </View>
 
           <Pressable
-            style={[styles.loginButton, (!email || !password) && styles.loginButtonDisabled]}
+            style={[styles.loginButton, (!email || !senha) && styles.loginButtonDisabled]}
             onPress={handleLogin}
-            disabled={!email || !password || isLoading}
+            disabled={!email || !senha || isLoading}
           >
             {isLoading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.loginButtonText}>Entrar na Conta</Text>
+              <Text style={styles.loginButtonText}>Iniciar Sessão</Text>
             )}
           </Pressable>
         </View>
 
-        {/* RODAPÉ */}
+        {/* RODAPÉ COM LIGAÇÃO PARA O REGISTO */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>Não tem uma conta? </Text>
-          <Pressable hitSlop={10}>
-            <Text style={styles.footerLink}>Cadastre-se</Text>
+          <Pressable hitSlop={10} onPress={() => router.push('/cadastro')}>
+            <Text style={styles.footerLink}>Registe-se</Text>
           </Pressable>
         </View>
         
@@ -108,7 +138,7 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     width: '100%',
-    maxWidth: 400, // No PC fica com tamanho de celular no meio da tela
+    maxWidth: 400, // No PC ou tablet fica com tamanho de telemóvel centrado no ecrã
     alignSelf: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -184,9 +214,10 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   loginButtonDisabled: {
-    backgroundColor: '#3730A3', // Roxo mais apagado e escuro
+    backgroundColor: '#3730A3',
     shadowOpacity: 0,
     elevation: 0,
+    opacity: 0.7,
   },
   loginButtonText: {
     color: '#FFFFFF',
